@@ -17,6 +17,8 @@ from api.ambulance import ambulance_bp
 from api.icuguard import icu_bp
 from api.location import location_bp
 from api.admin import admin_bp
+from dotenv import load_dotenv
+load_dotenv()
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -274,5 +276,6 @@ def seed_demo_data():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        db.init_app(app)
         seed_demo_data()
     app.run(debug=True, host='0.0.0.0', port=5000)
