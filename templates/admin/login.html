@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Admin Login — AyuRaksha{% endblock %}
+
+{% block content %}
+<div style="min-height:70vh;display:flex;align-items:center;justify-content:center;padding:32px 16px;background:var(--surface2)">
+  <div class="otp-box">
+    <div style="font-size:40px;margin-bottom:12px">🔐</div>
+    <h2>Admin Panel</h2>
+    <p style="color:var(--text-muted);font-size:13px;margin-bottom:28px">AyuRaksha Operations Dashboard</p>
+    <div class="form-group" style="text-align:left">
+      <label>Username</label>
+      <input type="text" id="adminUser" placeholder="admin" onkeypress="if(event.key==='Enter')adminLogin()"/>
+    </div>
+    <div class="form-group" style="text-align:left">
+      <label>Password</label>
+      <input type="password" id="adminPass" placeholder="Password" onkeypress="if(event.key==='Enter')adminLogin()"/>
+    </div>
+    <button class="btn btn-primary btn-block btn-lg" onclick="adminLogin()">Login to Admin</button>
+  </div>
+</div>
+<script>
+async function adminLogin() {
+  const username = document.getElementById('adminUser').value.trim();
+  const password = document.getElementById('adminPass').value;
+  if (!username || !password) { showToast('Enter credentials', 'error'); return; }
+  const res = await apiCall('POST', '/auth/admin/login', { username, password });
+  if (res.success) {
+    Auth.setToken(res.data.token);
+    Auth.setRole('admin');
+    window.location = '/admin/dashboard';
+  } else {
+    showToast(res.message || 'Invalid credentials', 'error');
+  }
+}
+</script>
+{% endblock %}

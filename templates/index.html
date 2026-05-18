@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}AyuRaksha — सही अस्पताल। सही समय। सही इलाज।{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-content">
+    <div class="hero-badge">
+      <span class="pulse-dot"></span>
+      🇮🇳 Real-Time Healthcare Coordination
+    </div>
+    <h1>Healthcare at Your<br/><span>Fingertips</span></h1>
+    <p>Find beds, book lab tests at home, track ambulances live, and monitor ICU patients — one connected healthcare platform.</p>
+    <div class="hero-actions">
+      <a href="/bedfinder" class="btn btn-white btn-lg">🏥 Find a Bed Now</a>
+      <a href="/ambulance" class="btn btn-ghost btn-lg">🚑 Book Ambulance</a>
+    </div>
+  </div>
+</section>
+
+<!-- Live Stats -->
+<div class="stats-bar">
+  <div class="stat-item">
+    <div class="stat-number" id="stat-hospitals">—</div>
+    <div class="stat-label">Hospitals Listed</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-number" id="stat-labs">—</div>
+    <div class="stat-label">Labs Available</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-number" id="stat-ambulances">—</div>
+    <div class="stat-label">Ambulances Ready</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-number">24/7</div>
+    <div class="stat-label">Emergency Support</div>
+  </div>
+</div>
+
+<!-- Modules -->
+<section class="section">
+  <div class="container">
+    <div class="section-title">Our Services</div>
+    <div class="section-subtitle">Everything you need — one platform</div>
+    <div class="module-grid">
+      <div class="module-card" onclick="window.location='/bedfinder'">
+        <div class="module-icon" style="background:#dcfce7">🏥</div>
+        <h3>BedFinder</h3>
+        <p>Check real-time bed availability at hospitals near you. Filter by ICU, general, maternity, emergency.</p>
+        <a href="/bedfinder" class="module-link" style="color:var(--primary)">Find Beds →</a>
+      </div>
+      <div class="module-card" onclick="window.location='/labconnect'">
+        <div class="module-icon" style="background:#dbeafe">🧪</div>
+        <h3>LabConnect</h3>
+        <p>Book home collection for 100+ tests from NABL-certified labs. Get reports on WhatsApp.</p>
+        <a href="/labconnect" class="module-link" style="color:#1e40af">Book Lab Test →</a>
+      </div>
+      <div class="module-card" onclick="window.location='/ambulance'">
+        <div class="module-icon" style="background:#fee2e2">🚑</div>
+        <h3>Ambulance</h3>
+        <p>Book Basic, ALS, or Neonatal ambulance in under 60 seconds. Track live on map.</p>
+        <a href="/ambulance" class="module-link" style="color:var(--accent)">Book Now →</a>
+      </div>
+      <div class="module-card" onclick="window.location='/icuguard'">
+        <div class="module-icon" style="background:#fef3c7">🧠</div>
+        <h3>ICU Guard</h3>
+        <p>AI-powered early warning for ICU teams. Real-time vitals monitoring with WhatsApp alerts.</p>
+        <a href="/icuguard" class="module-link" style="color:#92400e">View Dashboard →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- How It Works -->
+<section class="section section-muted">
+  <div class="container">
+    <div class="section-title">How AyuRaksha Works</div>
+    <div class="section-subtitle">Simple. Fast. Reliable.</div>
+    <div class="module-grid">
+      <div style="text-align:center;padding:24px">
+        <div style="font-size:42px;margin-bottom:12px">📍</div>
+        <h4 style="margin-bottom:8px">1. Auto-detect Location</h4>
+        <p style="color:var(--text-muted);font-size:14px">We detect your location in region and show you what's nearby.</p>
+      </div>
+      <div style="text-align:center;padding:24px">
+        <div style="font-size:42px;margin-bottom:12px">🔍</div>
+        <h4 style="margin-bottom:8px">2. Search & Compare</h4>
+        <p style="color:var(--text-muted);font-size:14px">Filter hospitals by bed type, insurance, specialty and distance.</p>
+      </div>
+      <div style="text-align:center;padding:24px">
+        <div style="font-size:42px;margin-bottom:12px">📲</div>
+        <h4 style="margin-bottom:8px">3. Book in Seconds</h4>
+        <p style="color:var(--text-muted);font-size:14px">Instant confirmation with booking ID sent to your WhatsApp.</p>
+      </div>
+      <div style="text-align:center;padding:24px">
+        <div style="font-size:42px;margin-bottom:12px">✅</div>
+        <h4 style="margin-bottom:8px">4. Track Live</h4>
+        <p style="color:var(--text-muted);font-size:14px">Track ambulance, booking status, and lab reports in real-time.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Testimonials -->
+<section class="section">
+  <div class="container">
+    <div class="section-title">Pilot User Feedback</div>
+    <div class="section-subtitle">Real stories from real patients</div>
+    <div class="testimonials-grid">
+      <div class="testimonial-card">
+        <div class="stars" style="margin-bottom:8px;font-size:18px">★★★★★</div>
+        <p class="testimonial-text">" ICU bed availability quickly dekh paaye."</p>
+        <div class="testimonial-author">Rakesh Tiwari</div>
+        <div class="testimonial-location">Chowdhary Nagar, Barabanki</div>
+      </div>
+      <div class="testimonial-card">
+        <div class="stars" style="margin-bottom:8px;font-size:18px">★★★★★</div>
+        <p class="testimonial-text">"HbA1c test ghar baithe book kiya. Subah 8 baje technician aaya, shaam ko report WhatsApp pe aa gayi."</p>
+        <div class="testimonial-author">Sunita Devi</div>
+        <div class="testimonial-location">Ram Nagar, Barabanki</div>
+      </div>
+      <div class="testimonial-card">
+        <div class="stars" style="margin-bottom:8px;font-size:18px">★★★★☆</div>
+        <p class="testimonial-text">"ALS ambulance sirf 7 minute mein pahunch gaya. Driver bahut professional tha. Life-saving service."</p>
+        <div class="testimonial-author">Mohd. Arif Khan</div>
+        <div class="testimonial-location">Station Road, Barabanki</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Register CTA -->
+<div class="register-strip">
+  <div>
+    <h3>Is Your Hospital on AyuRaksha?</h3>
+    <p>Register now — patients near you will find your hospital in real-time. Verification in 24 hours.</p>
+  </div>
+  <div style="display:flex;gap:12px;flex-wrap:wrap">
+    <a href="/hospital/register" class="btn btn-white">Register Hospital</a>
+    <a href="/lab/register" class="btn btn-ghost" style="border-color:rgba(255,255,255,0.5);color:white">Register Lab</a>
+  </div>
+</div>
+{% endblock %}

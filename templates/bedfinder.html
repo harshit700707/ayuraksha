@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}BedFinder — AyuRaksha{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+{% endblock %}
+
+{% block content %}
+<div style="background:var(--primary-dark);color:white;padding:20px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+  <div>
+    <h2 style="font-family:var(--font-display);font-size:24px;margin-bottom:4px">🏥 BedFinder</h2>
+    <p style="opacity:0.8;font-size:13px">Real-time hospital bed availability in Barabanki</p>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <button class="btn btn-accent btn-sm" onclick="findNearestICU()">🚨 Find Nearest ICU</button>
+    <button class="btn btn-sm" style="background:rgba(255,255,255,0.15);color:white;border:none" onclick="loadHospitals()">🔄 Refresh</button>
+  </div>
+</div>
+
+<div class="page-layout">
+  <!-- Sidebar Filters -->
+  <div class="sidebar">
+    <div class="filter-card">
+      <h4>Filters</h4>
+      <div class="filter-group">
+        <label>Bed Type</label>
+        <select id="filterBedType">
+          <option value="">All Beds</option>
+          <option value="icu">ICU</option>
+          <option value="general">General</option>
+          <option value="emergency">Emergency</option>
+          <option value="maternity">Maternity</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Insurance</label>
+        <select id="filterInsurance">
+          <option value="">All Insurance</option>
+          <option value="Ayushman Bharat">Ayushman Bharat</option>
+          <option value="PMJAY">PMJAY</option>
+          <option value="ESI">ESI</option>
+          <option value="CGHS">CGHS</option>
+          <option value="Star Health">Star Health</option>
+          <option value="Cash">Cash / UPI</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Specialty</label>
+        <select id="filterSpecialty">
+          <option value="">All Specialties</option>
+          <option value="Cardiology">Cardiology</option>
+          <option value="Orthopaedics">Orthopaedics</option>
+          <option value="Neurology">Neurology</option>
+          <option value="Gynaecology">Gynaecology</option>
+          <option value="Paediatrics">Paediatrics</option>
+          <option value="Oncology">Oncology</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Search Radius (km)</label>
+        <select id="filterRadius">
+          <option value="5">5 km</option>
+          <option value="10">10 km</option>
+          <option value="20" selected>20 km</option>
+          <option value="50">50 km</option>
+        </select>
+      </div>
+      <div style="padding-top:8px;border-top:1px solid var(--border);font-size:12px;color:var(--text-muted)">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="width:12px;height:12px;border-radius:50%;background:#22c55e;display:inline-block"></span> Many beds available</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="width:12px;height:12px;border-radius:50%;background:#f97316;display:inline-block"></span> Few beds left</div>
+        <div style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:50%;background:#ef4444;display:inline-block"></span> No beds available</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div id="map"></div>
+    <div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
+      <span id="resultCount" style="font-size:13px;font-weight:700;color:var(--text-muted)"></span>
+      <span style="font-size:12px;color:var(--text-muted)">Updated every 5 min</span>
+    </div>
+    <div id="hospitalList"></div>
+  </div>
+</div>
+
+<!-- Booking Modal -->
+<div id="bookingModal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeModal('bookingModal')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">Book Bed</div>
+      <button class="modal-close" onclick="closeModal('bookingModal')">&times;</button>
+    </div>
+    <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:18px;font-weight:700;font-size:14px" id="bookHospitalName"></div>
+    <div class="form-group">
+      <label>Bed Type *</label>
+      <select id="bookBedType">
+        <option value="general">General Ward</option>
+        <option value="icu">ICU</option>
+        <option value="emergency">Emergency</option>
+        <option value="maternity">Maternity</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Patient Name *</label>
+        <input type="text" id="bookPatientName" placeholder="Full name"/>
+      </div>
+      <div class="form-group">
+        <label>Patient Age *</label>
+        <input type="number" id="bookPatientAge" placeholder="Age" min="0" max="120"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Phone Number *</label>
+      <input type="tel" id="bookPatientPhone" placeholder="10-digit mobile number" maxlength="10"/>
+    </div>
+    <div class="form-group">
+      <label>Diagnosis / Condition</label>
+      <input type="text" id="bookDiagnosis" placeholder="e.g. Fracture, Fever, Labour"/>
+    </div>
+    <div class="form-group">
+      <label>Insurance Type</label>
+      <select id="bookInsurance">
+        <option value="Cash">Cash / UPI</option>
+        <option value="Ayushman Bharat">Ayushman Bharat</option>
+        <option value="PMJAY">PMJAY</option>
+        <option value="ESI">ESI</option>
+        <option value="CGHS">CGHS</option>
+        <option value="Private Insurance">Private Insurance</option>
+      </select>
+    </div>
+    <div class="alert alert-info" style="font-size:13px">📲 Booking confirmation will be sent to WhatsApp</div>
+    <button class="btn btn-primary btn-block btn-lg" id="bookSubmitBtn" onclick="submitBedBooking()">Confirm Booking</button>
+  </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div id="confirmModal" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <div class="success-screen">
+      <div class="success-icon">✓</div>
+      <h2>Bed Booked!</h2>
+      <p style="color:var(--text-muted);margin-bottom:8px">Your booking ID is:</p>
+      <div class="booking-id-display" id="confirmBookingId"></div>
+      <p style="color:var(--text-muted);font-size:13px">Confirmation sent to your WhatsApp. Please arrive within 2 hours.</p>
+      <button class="btn btn-primary btn-lg" style="margin-top:24px" onclick="closeModal('confirmModal')">Done</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{{ url_for('static', filename='js/bedfinder.js') }}"></script>
+{% endblock %}

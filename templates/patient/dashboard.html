@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}My Dashboard — AyuRaksha{% endblock %}
+
+{% block content %}
+<div style="max-width:900px;margin:0 auto;padding:32px 20px">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;flex-wrap:wrap;gap:12px">
+    <div>
+      <h2 style="font-family:var(--font-display);font-size:26px;color:var(--primary)">Welcome, <span id="userName">Patient</span>!</h2>
+      <p style="color:var(--text-muted);font-size:13px">Manage your health bookings</p>
+    </div>
+    <button onclick="Auth.logout()" class="btn btn-outline btn-sm">Logout</button>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="module-grid" style="margin-bottom:32px">
+    <div class="module-card" onclick="window.location='/bedfinder'">
+      <div class="module-icon" style="background:#dcfce7">🏥</div>
+      <h3>Find Bed</h3>
+      <p>Check hospital bed availability near you</p>
+    </div>
+    <div class="module-card" onclick="window.location='/labconnect'">
+      <div class="module-icon" style="background:#dbeafe">🧪</div>
+      <h3>Book Lab Test</h3>
+      <p>Home collection from nearby labs</p>
+    </div>
+    <div class="module-card" onclick="window.location='/ambulance'">
+      <div class="module-icon" style="background:#fee2e2">🚑</div>
+      <h3>Ambulance</h3>
+      <p>Book emergency ambulance</p>
+    </div>
+  </div>
+
+  <!-- Bookings -->
+  <div class="card">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('bed')">🏥 Bed Bookings</button>
+      <button class="tab-btn" onclick="switchTab('lab')">🧪 Lab Bookings</button>
+    </div>
+    <div id="tab-bed" class="tab-panel active">
+      <div id="bedBookings"><div class="loading-overlay"><div class="spinner"></div></div></div>
+    </div>
+    <div id="tab-lab" class="tab-panel">
+      <div id="labBookings"><div class="loading-overlay"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  if (!Auth.isLoggedIn()) { window.location = '/patient/login'; return; }
+  const user = Auth.getUser();
+  if (user?.name) document.getElementById('userName').textContent = user.name.split(' ')[0];
+  else if (user?.phone) document.getElementById('userName').textContent = '+91' + user.phone;
+});
+
+function switchTab(t) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('[onclick*="switchTab"]').forEach((b, i) => { if (b.getAttribute('onclick').includes(t)) b.classList.add('active'); });
+  document.getElementById(`tab-${t}`)?.classList.add('active');
+}
+</script>
+{% endblock %}

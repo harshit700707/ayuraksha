@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}AyuRaksha{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+<!-- Emergency Strip -->
+<div class="emergency-strip">
+  <span class="pulse-dot"></span>
+  Emergency? Call <strong>112</strong> &nbsp;|&nbsp;
+  <a href="/ambulance">Book Ambulance in 60 sec &rarr;</a>
+</div>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <a href="/" class="nav-logo">
+    <span class="logo-icon">+</span>AyuRaksha <span class="logo-sub">आयुरक्षा</span>
+  </a>
+  <div class="nav-links">
+    <a href="/bedfinder">BedFinder</a>
+    <a href="/labconnect">LabConnect</a>
+    <a href="/ambulance">Ambulance</a>
+    <a href="/icuguard">ICU Guard</a>
+  </div>
+  <div class="nav-actions">
+    <span id="locationDisplay" class="nav-location">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+      Detecting...
+    </span>
+    <a href="/patient/login" class="btn-nav" id="loginBtn">Login</a>
+    <button class="btn-nav btn-primary" onclick="window.location='/patient/login'">Book Now</button>
+  </div>
+</nav>
+
+<!-- Main content -->
+<main>
+  {% block content %}{% endblock %}
+</main>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <span class="logo-icon">+</span> AyuRaksha
+      <p>सही अस्पताल। सही समय। सही इलाज।</p>
+    </div>
+    <div class="footer-links">
+      <div>
+        <strong>Services</strong>
+        <a href="/bedfinder">BedFinder</a>
+        <a href="/labconnect">LabConnect</a>
+        <a href="/ambulance">Ambulance</a>
+        <a href="/icuguard">ICU Guard</a>
+      </div>
+      <div>
+        <strong>Register</strong>
+        <a href="/hospital/register">Hospital Registration</a>
+        <a href="/lab/register">Lab Registration</a>
+        <a href="/hospital/dashboard">Hospital Login</a>
+        <a href="/admin">Admin Panel</a>
+      </div>
+      <div>
+        <strong>Emergency</strong>
+        <a href="tel:112">Call 112</a>
+        <a href="/ambulance">Book Ambulance</a>
+        <a href="/bedfinder">Find ICU Bed</a>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    &copy; 2026 AyuRaksha (आयुरक्षा) &copy; 2026 AyuRaksha &mdash; Serving Barabanki, UP &mdash; 1800-AYU-RAKSHAmdash; Barabanki, UP &copy; 2026 AyuRaksha &mdash; Serving Barabanki, UP &mdash; 1800-AYU-RAKSHAmdash; 1800-AYU-RAKSHA
+  </div>
+</footer>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}Hospital Dashboard — AyuRaksha{% endblock %}
+
+{% block content %}
+<!-- Login Gate -->
+<div id="loginGate" style="display:none;max-width:420px;margin:60px auto;padding:20px">
+  <div class="otp-box">
+    <h2>Hospital Login</h2>
+    <p style="color:var(--text-muted);font-size:13px;margin-bottom:24px">Login with your registered phone and password</p>
+    <div class="form-group" style="text-align:left">
+      <label>Phone Number</label>
+      <input type="tel" id="loginPhone" placeholder="10-digit number" maxlength="10"/>
+    </div>
+    <div class="form-group" style="text-align:left">
+      <label>Password</label>
+      <input type="password" id="loginPassword" placeholder="Your password"/>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="hospitalLogin()">Login</button>
+    <p style="margin-top:16px;font-size:13px;color:var(--text-muted)">Not registered? <a href="/hospital/register">Register your hospital →</a></p>
+  </div>
+</div>
+
+<!-- Dashboard -->
+<div id="dashContent" style="display:none">
+  <div style="background:var(--primary-dark);color:white;padding:20px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+    <div>
+      <h2 style="font-size:20px;font-weight:800" id="dashHospitalName">Hospital Dashboard</h2>
+      <p style="font-size:12px;opacity:0.75">Manage beds, bookings, and ICU patients</p>
+    </div>
+    <div style="display:flex;gap:10px">
+      <a href="/icuguard" class="btn btn-sm" style="background:rgba(255,255,255,0.15);color:white;border:none">🧠 ICU Guard</a>
+      <button onclick="Auth.logout()" class="btn btn-sm btn-outline" style="border-color:rgba(255,255,255,0.4);color:white">Logout</button>
+    </div>
+  </div>
+
+  <div style="max-width:1100px;margin:0 auto;padding:24px 20px">
+    <!-- Bed Update Card -->
+    <div class="card" style="margin-bottom:24px">
+      <div class="card-title">Update Bed Availability</div>
+      <div class="card-subtitle">Update bed counts — patients see this in real-time</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:16px" id="bedUpdateGrid"></div>
+      <button class="btn btn-primary" onclick="updateBeds()">💾 Save Bed Counts</button>
+      <span style="margin-left:12px;font-size:12px;color:var(--text-muted)" id="lastUpdate"></span>
+    </div>
+
+    <!-- Booking Tabs -->
+    <div class="card">
+      <div class="card-title">Recent Bed Bookings</div>
+      <div id="bookingsList"><div class="loading-overlay"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let hospitalData = null;
+
+async function hospitalLogin() {
+  const phone = document.getElementById('loginPhone').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  if (!phone || !password) { showToast('Please enter phone and password', 'error'); return; }
+
+  const res = await apiCall('POST', '/auth/hospital/login', { phone, password });
+  if (res.success) {
+    Auth.setToken(res.data.token);
+    Auth.setRole('hospital');
+    Auth.setUser(res.data.hospital);
+    loadDashboard(res.data.hospital);
+  } else {
+    showToast(res.message || 'Login failed', 'error');
+  }
+}
+
+async function loadDashboard(hospital) {
+  hospitalData = hospital;
+  document.getElementById('loginGate').style.display = 'none';
+  document.getElementById('dashContent').style.display = 'block';
+  document.getElementById('dashHospitalName').textContent = hospital.name || 'Hospital Dashboard';
+
+  renderBedInputs(hospital);
+  await loadBookings();
+}
+
+function renderBedInputs(h) {
+  const grid = document.getElementById('bedUpdateGrid');
+  const beds = [
+    { key: 'icu', label: 'ICU', total: h.icu_beds_total, avail: h.icu_beds_available, color: '#fee2e2' },
+    { key: 'general', label: 'General', total: h.general_beds_total, avail: h.general_beds_available, color: '#dcfce7' },
+    { key: 'emergency', label: 'Emergency', total: h.emergency_beds_total, avail: h.emergency_beds_available, color: '#fef3c7' },
+    { key: 'maternity', label: 'Maternity', total: h.maternity_beds_total, avail: h.maternity_beds_available, color: '#dbeafe' },
+  ];
+  grid.innerHTML = beds.map(b => `
+    <div style="background:${b.color};border-radius:var(--radius-sm);padding:16px">
+      <div style="font-weight:800;margin-bottom:4px">${b.label} Beds</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Total: ${b.total}</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:12px;font-weight:700">Available:</span>
+        <input type="number" id="bed_${b.key}" value="${b.avail}" min="0" max="${b.total}"
+          style="width:60px;padding:6px;border:1.5px solid var(--border);border-radius:6px;font-size:16px;font-weight:800;text-align:center"/>
+      </div>
+    </div>`).join('');
+  if (h.last_bed_update) {
+    document.getElementById('lastUpdate').textContent = `Last updated: ${new Date(h.last_bed_update).toLocaleString('en-IN')}`;
+  }
+}
+
+async function updateBeds() {
+  const data = {
+    icu_available: parseInt(document.getElementById('bed_icu')?.value) || 0,
+    general_available: parseInt(document.getElementById('bed_general')?.value) || 0,
+    emergency_available: parseInt(document.getElementById('bed_emergency')?.value) || 0,
+    maternity_available: parseInt(document.getElementById('bed_maternity')?.value) || 0,
+  };
+  const res = await apiCall('PUT', '/api/hospital/beds', data);
+  if (res.success) { showToast('Bed counts updated successfully!', 'success'); }
+  else showToast(res.message || 'Update failed', 'error');
+}
+
+async function loadBookings() {
+  const res = await apiCall('GET', '/api/hospital/bookings');
+  const container = document.getElementById('bookingsList');
+  if (!res.success) { container.innerHTML = '<div style="color:var(--text-muted);padding:16px">No bookings yet</div>'; return; }
+  const bookings = res.data;
+  if (!bookings.length) { container.innerHTML = '<div style="color:var(--text-muted);padding:16px">No bookings yet</div>'; return; }
+  container.innerHTML = `
+    <table>
+      <thead><tr><th>Booking ID</th><th>Patient</th><th>Bed Type</th><th>Phone</th><th>Status</th><th>Time</th><th>Action</th></tr></thead>
+      <tbody>
+        ${bookings.map(b => `
+          <tr>
+            <td><strong>${b.booking_id}</strong></td>
+            <td>${b.patient_name}, ${b.patient_age}y</td>
+            <td style="text-transform:capitalize">${b.bed_type}</td>
+            <td>${b.patient_phone}</td>
+            <td><span style="padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700;background:${b.status==='Confirmed'?'#dcfce7':b.status==='Admitted'?'#dbeafe':'#f3f4f6'};color:${b.status==='Confirmed'?'#166534':b.status==='Admitted'?'#1e40af':'#374151'}">${b.status}</span></td>
+            <td style="font-size:12px;color:var(--text-muted)">${new Date(b.created_at).toLocaleString('en-IN')}</td>
+            <td><select onchange="updateBookingStatus(${b.id}, this.value)" style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px">
+              <option>Change →</option>
+              <option value="Admitted">Admitted</option>
+              <option value="Discharged">Discharged</option>
+              <option value="Cancelled">Cancelled</option>
+            </select></td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+async function updateBookingStatus(id, status) {
+  if (!status || status === 'Change →') return;
+  const res = await apiCall('PUT', `/api/hospital/booking/${id}/status`, { status });
+  if (res.success) { showToast(`Status updated to ${status}`, 'success'); loadBookings(); }
+  else showToast('Update failed', 'error');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const token = Auth.getToken();
+  const role = Auth.getRole();
+  if (token && role === 'hospital') {
+    const user = Auth.getUser();
+    if (user) loadDashboard(user);
+    else { Auth.logout(); }
+  } else {
+    document.getElementById('loginGate').style.display = 'block';
+  }
+});
+</script>
+{% endblock %}

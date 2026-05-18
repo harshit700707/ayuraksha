@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Patient Login — AyuRaksha{% endblock %}
+
+{% block content %}
+<div style="min-height:70vh;display:flex;align-items:center;justify-content:center;padding:32px 16px;background:var(--surface2)">
+  <div class="otp-box">
+    <div style="font-size:40px;margin-bottom:12px">👤</div>
+    <h2>Patient Login</h2>
+    <p style="color:var(--text-muted);font-size:13px;margin-bottom:28px">Enter your mobile number to receive an OTP</p>
+
+    <!-- Step 1: Phone -->
+    <div id="phoneStep">
+      <div class="form-group" style="text-align:left">
+        <label>Mobile Number</label>
+        <div style="display:flex;gap:8px">
+          <div style="padding:10px 12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-weight:700;white-space:nowrap">+91</div>
+          <input type="tel" id="phoneInput" placeholder="Enter 10-digit number" maxlength="10" style="flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:16px;font-family:var(--font);outline:none"/>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block btn-lg" id="sendOtpBtn" onclick="sendOTP()">Send OTP</button>
+      <p style="margin-top:16px;font-size:12px;color:var(--text-muted)">OTP will be sent via WhatsApp</p>
+    </div>
+
+    <!-- Step 2: OTP -->
+    <div id="otpStep" style="display:none">
+      <div class="alert alert-success" id="otpSentMsg"></div>
+      <div class="form-group" style="text-align:left">
+        <label>Enter OTP</label>
+        <input type="text" class="otp-input" id="otpInput" placeholder="——————" maxlength="6"
+          oninput="this.value=this.value.replace(/\D/g,'')"
+          onkeypress="if(event.key==='Enter')verifyOTP()"/>
+      </div>
+      <button class="btn btn-primary btn-block btn-lg" id="verifyBtn" onclick="verifyOTP()">Verify & Login</button>
+      <button class="btn btn-outline btn-block btn-sm" style="margin-top:10px" onclick="goBackToPhone()">← Change Number</button>
+      <div id="resendTimer" style="margin-top:12px;font-size:12px;color:var(--text-muted)"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentPhone = '';
+let resendCountdown = null;
+
+async function sendOTP() {
+  const phone = document.getElementById('phoneInput').value.trim();
+  if (!/^[6-9][0-9]{9}$/.test(phone)) { showToast('Please enter a valid 10-digit mobile number', 'error'); return; }
+
+  currentPhone = phone;
+  const btn = document.getElementById('sendOtpBtn');
+  btn.textContent = 'Sending...'; btn.disabled = true;
+
+  const res = await apiCall('POST', '/auth/patient/send-otp', { phone });
+  btn.textContent = 'Send OTP'; btn.disabled = false;
+
+  if (res.success) {
+    document.getElementById('phoneStep').style.display = 'none';
+    document.getElementById('otpStep').style.display = 'block';
+    document.getElementById('otpSentMsg').textContent = `OTP sent to +91 ${phone} via WhatsApp`;
+    startResendTimer();
+  } else {
+    showToast(res.message || 'Failed to send OTP', 'error');
+  }
+}
+
+async function verifyOTP() {
+  const otp = document.getElementById('otpInput').value.trim();
+  if (otp.length !== 6) { showToast('Please enter 6-digit OTP', 'error'); return; }
+
+  const btn = document.getElementById('verifyBtn');
+  btn.textContent = 'Verifying...'; btn.disabled = true;
+
+  const res = await apiCall('POST', '/auth/patient/verify-otp', { phone: currentPhone, otp });
+  btn.textContent = 'Verify & Login'; btn.disabled = false;
+
+  if (res.success) {
+    Auth.setToken(res.data.token);
+    Auth.setRole('patient');
+    Auth.setUser(res.data.user);
+    showToast('Login successful!', 'success');
+    setTimeout(() => window.location = '/patient/dashboard', 800);
+  } else {
+    showToast(res.message || 'Invalid OTP', 'error');
+  }
+}
+
+function goBackToPhone() {
+  document.getElementById('phoneStep').style.display = 'block';
+  document.getElementById('otpStep').style.display = 'none';
+  document.getElementById('otpInput').value = '';
+  if (resendCountdown) clearInterval(resendCountdown);
+}
+
+function startResendTimer() {
+  let t = 60;
+  const el = document.getElementById('resendTimer');
+  resendCountdown = setInterval(() => {
+    el.textContent = `Resend OTP in ${t}s`;
+    t--;
+    if (t < 0) {
+      clearInterval(resendCountdown);
+      el.innerHTML = '<button onclick="resendOTP()" style="background:none;border:none;color:var(--primary);font-weight:700;cursor:pointer;font-size:13px">Resend OTP</button>';
+    }
+  }, 1000);
+}
+
+function resendOTP() { goBackToPhone(); document.getElementById('phoneInput').value = currentPhone; sendOTP(); }
+</script>
+{% endblock %}

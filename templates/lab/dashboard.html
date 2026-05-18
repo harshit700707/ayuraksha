@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}Lab Dashboard — AyuRaksha{% endblock %}
+
+{% block content %}
+<div id="loginGate" style="display:none;max-width:400px;margin:60px auto;padding:20px">
+  <div class="otp-box">
+    <h2>Lab Login</h2>
+    <div class="form-group" style="text-align:left;margin-top:20px">
+      <label>Phone</label>
+      <input type="tel" id="loginPhone" placeholder="10-digit number" maxlength="10"/>
+    </div>
+    <div class="form-group" style="text-align:left">
+      <label>Password</label>
+      <input type="password" id="loginPassword"/>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="labLogin()">Login</button>
+    <p style="margin-top:12px;font-size:13px;color:var(--text-muted)">Not registered? <a href="/lab/register">Register →</a></p>
+  </div>
+</div>
+
+<div id="dashContent" style="display:none">
+  <div style="background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:white;padding:20px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+    <div>
+      <h2 style="font-size:20px;font-weight:800" id="labName">Lab Dashboard</h2>
+      <p style="font-size:12px;opacity:0.75">Manage bookings and tests</p>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button onclick="openModal('addTestModal')" class="btn btn-sm" style="background:rgba(255,255,255,0.2);color:white;border:none">+ Add Test</button>
+      <button onclick="Auth.logout()" class="btn btn-sm btn-outline" style="border-color:rgba(255,255,255,0.4);color:white">Logout</button>
+    </div>
+  </div>
+
+  <div style="max-width:1100px;margin:0 auto;padding:24px 20px">
+    <div class="card" style="margin-bottom:24px">
+      <div class="card-title">Recent Bookings</div>
+      <div id="bookingsList"><div class="loading-overlay"><div class="spinner"></div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Your Test Menu</div>
+      <div id="testMenu"><div class="loading-overlay"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Test Modal -->
+<div id="addTestModal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeModal('addTestModal')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">Add New Test</div>
+      <button class="modal-close" onclick="closeModal('addTestModal')">&times;</button>
+    </div>
+    <div class="form-group">
+      <label>Test Name *</label>
+      <input type="text" id="testName" placeholder="e.g. Complete Blood Count"/>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Category</label>
+        <select id="testCategory">
+          <option>Haematology</option><option>Diabetes</option><option>Thyroid</option>
+          <option>Cardiac</option><option>Liver</option><option>Kidney</option>
+          <option>Infectious</option><option>General</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Price (₹) *</label>
+        <input type="number" id="testPrice" placeholder="200" min="0"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>TAT (hours)</label>
+        <input type="number" id="testTAT" placeholder="24"/>
+      </div>
+      <div class="form-group">
+        <label>Fasting Required</label>
+        <select id="testFasting">
+          <option value="false">No</option>
+          <option value="true">Yes</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="addTest()">Add Test</button>
+  </div>
+</div>
+
+<script>
+async function labLogin() {
+  const phone = document.getElementById('loginPhone').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const res = await apiCall('POST', '/auth/lab/login', { phone, password });
+  if (res.success) {
+    Auth.setToken(res.data.token);
+    Auth.setRole('lab');
+    Auth.setUser(res.data.lab);
+    loadDashboard(res.data.lab);
+  } else {
+    showToast(res.message || 'Login failed', 'error');
+  }
+}
+
+async function loadDashboard(lab) {
+  document.getElementById('loginGate').style.display = 'none';
+  document.getElementById('dashContent').style.display = 'block';
+  document.getElementById('labName').textContent = lab.name || 'Lab Dashboard';
+  await loadTests();
+}
+
+async function loadTests() {
+  const lab = Auth.getUser();
+  if (!lab) return;
+  const res = await apiCall('GET', `/api/lab/${lab.id}/tests`);
+  const container = document.getElementById('testMenu');
+  if (!res.success || !res.data.length) { container.innerHTML = '<div style="color:var(--text-muted);padding:16px">No tests added yet. Click "+ Add Test" to start.</div>'; return; }
+  container.innerHTML = `
+    <table>
+      <thead><tr><th>Test Name</th><th>Category</th><th>Price</th><th>TAT</th><th>Fasting</th></tr></thead>
+      <tbody>
+        ${res.data.map(t => `
+          <tr>
+            <td><strong>${t.name}</strong></td>
+            <td>${t.category}</td>
+            <td>₹${t.price}</td>
+            <td>${t.tat_hours}h</td>
+            <td>${t.fasting ? '✓ Yes' : 'No'}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+  document.getElementById('bookingsList').innerHTML = '<div style="color:var(--text-muted);padding:16px;font-size:13px">Booking history coming soon.</div>';
+}
+
+async function addTest() {
+  const data = {
+    name: document.getElementById('testName').value.trim(),
+    category: document.getElementById('testCategory').value,
+    price: parseInt(document.getElementById('testPrice').value),
+    tat_hours: parseInt(document.getElementById('testTAT').value) || 24,
+    fasting: document.getElementById('testFasting').value === 'true',
+  };
+  if (!data.name || !data.price) { showToast('Test name and price required', 'error'); return; }
+  const res = await apiCall('POST', '/api/lab/tests', data);
+  if (res.success) { closeModal('addTestModal'); showToast('Test added!', 'success'); loadTests(); }
+  else showToast(res.message || 'Error', 'error');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const token = Auth.getToken();
+  const role = Auth.getRole();
+  if (token && role === 'lab') {
+    const user = Auth.getUser();
+    if (user) loadDashboard(user);
+    else Auth.logout();
+  } else {
+    document.getElementById('loginGate').style.display = 'block';
+  }
+});
+</script>
+{% endblock %}

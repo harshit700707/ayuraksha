@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}LabConnect — Home Collection Tests — AyuRaksha{% endblock %}
+
+{% block content %}
+<div style="background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:white;padding:28px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+  <div>
+    <h2 style="font-family:var(--font-display);font-size:24px;margin-bottom:4px">🧪 LabConnect</h2>
+    <p style="opacity:0.8;font-size:13px">Book home sample collection — reports on WhatsApp</p>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div style="background:rgba(255,255,255,0.15);border-radius:var(--radius-sm);padding:8px 16px;font-size:14px;font-weight:700">
+      🛒 Cart: <span id="cartCount">0</span> tests &nbsp;|&nbsp; <span id="cartTotal">₹0</span>
+    </div>
+    <button class="btn btn-sm" style="background:rgba(255,255,255,0.2);color:white;border:none" onclick="openBookingModal()">Book Now →</button>
+  </div>
+</div>
+
+<div class="page-layout">
+  <!-- Sidebar: Labs + Cart -->
+  <div class="sidebar">
+    <!-- Nearby Labs -->
+    <div class="filter-card">
+      <h4>Nearby Labs</h4>
+      <div id="labList"><div class="spinner"></div></div>
+    </div>
+
+    <!-- Cart -->
+    <div class="filter-card">
+      <h4>Your Cart</h4>
+      <div id="cartItems"><div style="color:var(--text-muted);font-size:13px">No tests added yet</div></div>
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <span style="font-weight:800">Total</span>
+        <span style="font-weight:900;color:var(--primary)" id="cartTotal2">₹0</span>
+      </div>
+      <button class="btn btn-primary btn-block" style="margin-top:12px" onclick="openBookingModal()">Proceed to Book</button>
+    </div>
+  </div>
+
+  <!-- Test List -->
+  <div class="main-content">
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+      <input type="text" id="searchTests" placeholder="Search tests (e.g. HbA1c, CBC, Thyroid...)" style="flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:var(--font);outline:none"/>
+      <select id="filterCategory" style="padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font)">
+        <option value="">All Categories</option>
+        <option value="Haematology">Haematology</option>
+        <option value="Diabetes">Diabetes</option>
+        <option value="Thyroid">Thyroid</option>
+        <option value="Cardiac">Cardiac</option>
+        <option value="Liver">Liver</option>
+        <option value="Kidney">Kidney</option>
+        <option value="Infectious">Infectious</option>
+        <option value="General">General</option>
+      </select>
+    </div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px" id="testResultCount"></div>
+    <div id="testList"><div class="loading-overlay"><div class="spinner"></div><span>Loading tests...</span></div></div>
+  </div>
+</div>
+
+<!-- Sticky Cart Bar -->
+<div id="cartBar" style="display:none;position:fixed;bottom:0;left:0;right:0;background:var(--primary);color:white;padding:14px 24px;z-index:800;align-items:center;justify-content:space-between;box-shadow:0 -4px 16px rgba(0,0,0,0.2)">
+  <div style="font-weight:700">🛒 <span id="cartCount2"></span> tests added</div>
+  <button class="btn btn-sm" style="background:white;color:var(--primary);font-weight:800" onclick="openBookingModal()">Book Collection →</button>
+</div>
+
+<!-- Booking Modal -->
+<div id="bookingModal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeModal('bookingModal')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">Book Home Collection</div>
+      <button class="modal-close" onclick="closeModal('bookingModal')">&times;</button>
+    </div>
+
+    <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:18px">
+      <div style="font-weight:800;font-size:13px;margin-bottom:8px;color:var(--text-muted)">ORDER SUMMARY</div>
+      <div id="cartSummary"></div>
+      <div style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;font-weight:900">
+        <span>Total (incl. collection)</span>
+        <span id="cartSummaryTotal" style="color:var(--primary)"></span>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Patient Name *</label>
+        <input type="text" id="bookPatientName" placeholder="Full name"/>
+      </div>
+      <div class="form-group">
+        <label>Phone *</label>
+        <input type="tel" id="bookPatientPhone" placeholder="10-digit number" maxlength="10"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Home Address *</label>
+      <textarea id="bookAddress" placeholder="Full address for sample collection..." rows="2"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Date *</label>
+        <input type="date" id="slotDate" onchange="generateSlots()"/>
+      </div>
+      <div class="form-group">
+        <label>Time Slot *</label>
+        <select id="slotTime"></select>
+      </div>
+    </div>
+    <div class="alert alert-info" style="font-size:13px">📲 Our technician will call before arriving. Report on WhatsApp.</div>
+    <button class="btn btn-primary btn-block btn-lg" id="bookSubmitBtn" onclick="submitLabBooking()">Confirm Booking</button>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div id="confirmModal" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <div class="success-screen">
+      <div class="success-icon">✓</div>
+      <h2>Booking Confirmed!</h2>
+      <p style="color:var(--text-muted)">Your booking ID:</p>
+      <div class="booking-id-display" id="confirmBookingId"></div>
+      <p style="color:var(--text-muted);font-size:13px">Total: <strong id="confirmTotal"></strong></p>
+      <p style="color:var(--text-muted);font-size:13px;margin-top:8px">Our technician will visit your home for sample collection. Report on WhatsApp in 6-24 hours.</p>
+      <button class="btn btn-primary btn-lg" style="margin-top:24px" onclick="closeModal('confirmModal')">Done</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/labconnect.js') }}"></script>
+{% endblock %}
