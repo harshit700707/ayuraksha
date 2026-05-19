@@ -82,5 +82,48 @@
 
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 {% block scripts %}{% endblock %}
+<script>
+async function updateLocation() {
+    const locationElement = document.getElementById("locationDisplay");
+
+    if (!navigator.geolocation) {
+        locationElement.innerHTML = "📍 Location";
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        async (position) => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+
+            try {
+                const response = await fetch(
+                    `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`
+                );
+
+                const data = await response.json();
+
+                const city =
+                    data.address.city ||
+                    data.address.town ||
+                    data.address.village ||
+                    data.address.state ||
+                    "Your Area";
+
+                locationElement.innerHTML = `📍 ${city}`;
+
+            } catch (error) {
+                locationElement.innerHTML = "📍 Location";
+            }
+        },
+        () => {
+            locationElement.innerHTML = "📍 Location";
+        }
+    );
+}
+
+updateLocation();
+</script>
 </body>
+
 </html>
