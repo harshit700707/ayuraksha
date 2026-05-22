@@ -21,31 +21,41 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR,'..' ,'static','uploads')
 
 
+import os
+from flask import render_template, request
+from werkzeug.utils import secure_filename
+from PIL import Image
+# Baki jo aapke imports hain (jaise labs_bp, UPLOAD_FOLDER), unhe rehne dena
+
 @labs_bp.route('/upload-report', methods=['GET', 'POST'])
 def upload_report():
     if request.method == 'POST':
         file = request.files['report']
+        language = request.form.get('language', 'English')
 
-        language = request.form.get('language')
+        if file:
+            # 1. Pehle file ke bytes ko ek variable mein read kar lo (Gemini ke liye)
+            image_bytes = file.read()
+            
+            # 2. File pointer ko wapas shuruat par lao taaki agar save karna ho toh crash na kare
+            file.seek(0)
 
-        filename = secure_filename(file.filename)
+            # 3. (Optional) Agar tum Render par file save karna chahte ho toh ye lines rehne do:
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(UPLOAD_FOLDER, filename)
+            file.save(filepath)
 
-        filepath = os.path.join(UPLOAD_FOLDER, filename)
+            # --- TESSERACT WALI LINES HUMNE HATA DI HAIN TAAKI RAM CRASH NA HO ---
 
-        file.save(filepath)
+            # 4. Naye report_analyzer ko direct image_bytes aur language bhej do
+            ai_result = analyze_report(image_bytes, language)
 
-        image = Image.open(filepath)
-
-        extracted_text = pytesseract.image_to_string(image)
-
-        ai_result = analyze_report(filepath, language)
-
-        return render_template(
-            'report_result.html',
-            result=ai_result
-        )
+            return render_template(
+                'report_result.html',
+                result=ai_result
+            )
+            
     return render_template('upload_report.html')
-
 
 
 @labs_bp.route('/register', methods=['POST'])

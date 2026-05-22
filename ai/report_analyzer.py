@@ -1,69 +1,37 @@
 import os
-import pytesseract
-from PIL import Image
-from dotenv import load_dotenv
-from openai import OpenAI
+from google import genai
+from google.genai import types
 
-# Windows local testing ke liye path (agar zaroorat ho toh uncomment kar lena)
-# pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-
-# Cloud/Render Docker ke liye exact path definition
-if os.name != 'nt':  # Agar Windows nahi hai (LInux/Render hai)
-    pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
-
-load_dotenv()
-
-# OpenRouter Client Initialization
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("OPENROUTER_API_KEY")
-)
-
-def analyze_report(image_path, language):
+def analyze_report(image_bytes, language="English"):
+    """
+    Direct image bytes ko Gemini ko bhej kar OCR + Analysis dono ek saath karwane ke liye.
+    """
     try:
-        # --- 1. MEMORY OPTIMIZATION (Prevent SIGKILL/Out of Memory) ---
-        image = Image.open(image_path)
+        # Naya Client initialize karo (Ye Render ke Environment Variables se GEMINI_API_KEY utha lega)
+        client = genai.Client()
         
-        # Image ka size chota karo taaki Render ki RAM crash na ho
-        image.thumbnail((1200, 1200))
-        
-        # Black & White (Grayscale) convert karo taaki OCR fast chale aur memory bache
-        image = image.convert('L')
-
-        # --- 2. OCR TEXT EXTRACTION ---
-        extracted_text = pytesseract.image_to_string(image)
-
-        if not extracted_text.strip():
-            return "Error: Image se koi text nahi extracted ho saka. Kripya saaf photo upload karein."
-
-        # --- 3. PROMPT CREATION ---
-        prompt = f"""
-        Analyze this medical report text carefully.
-        
-        Language of Response: {language}
-        
-        Report Text:
-        {extracted_text}
-        
-        Provide the explanation strictly in the following structured format:
-        1. Abnormal values
-        2. Possible diseases
-        3. Suggestions
-        4. Simple summary
-        """
-
-        # --- 4. OPENROUTER API CALL (Optimized Model) ---
-        # Note: 'google/gemini-2.5-flash' OpenRouter par ekदम free aur sabse tez model hai.
-        # Agar aapko gpt-3.5 hi chahiye toh badal sakte ho, par flash timeout nahi karega.
-        completion = client.chat.completions.create(
-            model="google/gemini-2.5-flash", 
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
+        # Image bytes ko Gemini ke samajhne layak format mein convert karo
+        image_part = types.Part.from_bytes(
+            data=image_bytes,
+            mime_type="image/jpeg", # Agar png ho toh image/png bhi chalega, standard image/jpeg sahi kaam karta hai
         )
-
-        return completion.choices[0].message.content
+        
+        # Ek strong medical prompt jo OCR + Analysis dono karega
+        prompt = (
+            f"You are an advanced AI medical assistant for the AyurRaksha project. "
+            f"First, extract all the visible medical text from this report image. "
+            f"Then, analyze the data thoroughly and provide clean, patient-friendly insights "
+            f"and explanations in {language} language. Keep the formatting structured."
+        )
+        
+        # Direct image aur prompt dono bhej do
+        response = client.models.generate_content(
+            model='gemini-1.5-flash', # Flash multimodal hai aur bohot tez hai
+            contents=[image_part, prompt]
+        )
+        
+        return response.text
 
     except Exception as e:
-        print(f"--- CRITICAL ERROR LOG: {e} ---")
-        return f"Error generating response: {e}"
+        print(f"--- MULTIMODAL API ERROR: {e} ---")
+        return f"Analysis Error: {str(e)}"
