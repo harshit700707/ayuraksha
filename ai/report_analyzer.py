@@ -8,7 +8,7 @@ def analyze_report(image_bytes, language="English"):
     """
     try:
         # Naya Client initialize karo (Ye Render ke Environment Variables se GEMINI_API_KEY utha lega)
-        client = genai.Client(api_key='AIzaSyDizLZhSnWQcdQkelcqn5btpP_aTBj6XkY')
+        client = genai.Client()
         
         # Image bytes ko Gemini ke samajhne layak format mein convert karo
         image_part = types.Part.from_bytes(
