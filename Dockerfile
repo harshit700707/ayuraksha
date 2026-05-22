@@ -1,10 +1,12 @@
 # 1. Python ka stable image use karein
+# 1. Python ka stable image use karein
 FROM python:3.10-slim
 
-# 2. System dependencies install karein (Tesseract aur uski libraries)
+# 2. System dependencies install karein
 RUN apt-get update && apt-get install -y \
     tesseract-ocr \
-    libgl1-mesa-glx \
+    libgl1 \
+    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # 3. Working directory set karein
