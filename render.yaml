@@ -3,8 +3,6 @@ services:
     name: ayuraksha
     env: python
 
-    buildCommand: |
-      pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt
 
-    startCommand: |
-      apt-get update && apt-get install -y tesseract-ocr && gunicorn app:app
+    startCommand: bash start.sh
