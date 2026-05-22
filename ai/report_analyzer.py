@@ -26,7 +26,7 @@ def analyze_report(image_bytes, language="English"):
         
         # Direct image aur prompt dono bhej do
         response = client.models.generate_content(
-            model='gemini-1.5-flash', # Flash multimodal hai aur bohot tez hai
+            model='models/gemini-1.5-flash', # Flash multimodal hai aur bohot tez hai
             contents=[image_part, prompt]
         )
         
