@@ -276,6 +276,6 @@ def seed_demo_data():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-        db.init_app(app)
+        #db.init_app(app)
         seed_demo_data()
     app.run(debug=True, host='0.0.0.0', port=5000)

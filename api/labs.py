@@ -6,8 +6,46 @@ from werkzeug.security import generate_password_hash
 from database.models import db, Lab, Test, LabBooking, LabBookingItem
 from utils import validate_gst, validate_phone, success_response, error_response, generate_booking_id
 from utils.whatsapp import send_lab_booking_confirmation
+import os
+import pytesseract
+
+from PIL import Image
+from werkzeug.utils import secure_filename
+
+from flask import request, render_template
+
+from ai.report_analyzer import analyze_report
 
 labs_bp = Blueprint('labs', __name__)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_FOLDER = os.path.join(BASE_DIR,'..' ,'static','uploads')
+
+
+@labs_bp.route('/upload-report', methods=['GET', 'POST'])
+def upload_report():
+    if request.method == 'POST':
+        file = request.files['report']
+
+        language = request.form.get('language')
+
+        filename = secure_filename(file.filename)
+
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+
+        file.save(filepath)
+
+        image = Image.open(filepath)
+
+        extracted_text = pytesseract.image_to_string(image)
+
+        ai_result = analyze_report(filepath, language)
+
+        return render_template(
+            'report_result.html',
+            result=ai_result
+        )
+    return render_template('upload_report.html')
+
 
 
 @labs_bp.route('/register', methods=['POST'])

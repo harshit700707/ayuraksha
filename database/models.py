@@ -475,3 +475,15 @@ class Review(db.Model):
     rating = db.Column(db.Integer)
     comment = db.Column(db.String(500))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+class LabReport(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    patient_name = db.Column(db.String(100))
+
+    filename = db.Column(db.String(200))
+
+    extracted_text = db.Column(db.Text)
+
+    ai_response = db.Column(db.Text)
+
+    language = db.Column(db.String(20))
