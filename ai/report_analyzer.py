@@ -3,20 +3,23 @@ from google import genai
 from google.genai import types
 
 def analyze_report(image_bytes, language="English"):
-    """
-    Direct image bytes ko Gemini ko bhej kar OCR + Analysis dono ek saath karwane ke liye.
-    """
     try:
-        # Naya Client initialize karo (Ye Render ke Environment Variables se GEMINI_API_KEY utha lega)
-        client = genai.Client()
+        # --- 100% SAFE API KEY INJECTION ---
+        # Ye pehle GEMINI_API_KEY check karega, agar nahi mila toh GOOGLE_API_KEY uthayega
+        api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
         
-        # Image bytes ko Gemini ke samajhne layak format mein convert karo
+        # Agar dono variables cloud par nahi mile, toh fallback security check
+        if not api_key:
+            return "Analysis Error: Cloud environment mein API Key nahi mili. Render Environment settings check karein."
+            
+        # Ab hum explicitly naye client ko bhej rahe hain bina leak kiye
+        client = genai.Client(api_key=api_key) 
+        
         image_part = types.Part.from_bytes(
             data=image_bytes,
-            mime_type="image/jpeg", # Agar png ho toh image/png bhi chalega, standard image/jpeg sahi kaam karta hai
+            mime_type="image/jpeg",
         )
         
-        # Ek strong medical prompt jo OCR + Analysis dono karega
         prompt = (
             f"You are an advanced AI medical assistant for the AyurRaksha project. "
             f"First, extract all the visible medical text from this report image. "
@@ -24,9 +27,9 @@ def analyze_report(image_bytes, language="English"):
             f"and explanations in {language} language. Keep the formatting structured."
         )
         
-        # Direct image aur prompt dono bhej do
+        # Free stable tier model
         response = client.models.generate_content(
-            model='gemini-2.5-flash', # Flash multimodal hai aur bohot tez hai
+            model='gemini-2.0-flash', 
             contents=[image_part, prompt]
         )
         
