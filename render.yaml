@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: ayuraksha
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    aptPackages:
+      - tesseract-ocr
+      - tesseract-ocr-hin
+      - tesseract-ocr-tam
+      - tesseract-ocr-tel
