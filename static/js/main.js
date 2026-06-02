@@ -143,4 +143,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.querySelectorAll('.nav-links a').forEach(a => {
     if (a.getAttribute('href') === path) a.classList.add('active');
   });
+
+  // Auto pre-fill booking modals if Patient is logged in
+  if (Auth.isLoggedIn() && Auth.getRole() === 'patient') {
+    const user = Auth.getUser();
+    if (user) {
+      const nameFields = ['bookPatientName', 'ambPatientName'];
+      const phoneFields = ['bookPatientPhone', 'ambPatientPhone'];
+      
+      nameFields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = user.name || '';
+      });
+      phoneFields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = user.phone || '';
+      });
+    }
+  }
 });

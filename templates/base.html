@@ -4,8 +4,12 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>{% block title %}AyuRaksha{% endblock %}</title>
+  
+  <!-- Modern Google Fonts Connection -->
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
   {% block head %}{% endblock %}
@@ -30,9 +34,9 @@
     <a href="/ambulance">Ambulance</a>
     <a href="/icuguard">ICU Guard</a>
     <a href="/api/lab/upload-report">AI Report</a>
-   
   </div>
   <div class="nav-actions">
+    <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="Toggle Dark/Light Mode">🌓</button>
     <span id="locationDisplay" class="nav-location">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
       Detecting...
@@ -78,13 +82,76 @@
     </div>
   </div>
   <div class="footer-bottom">
-    &copy; 2026 AyuRaksha (आयुरक्षा) &copy; 2026 AyuRaksha &mdash; Serving Barabanki, UP &mdash; 1800-AYU-RAKSHAmdash; Barabanki, UP &copy; 2026 AyuRaksha &mdash; Serving Barabanki, UP &mdash; 1800-AYU-RAKSHAmdash; 1800-AYU-RAKSHA
+    &copy; 2026 AyuRaksha (आयुरक्षा) &mdash; Serving Barabanki, UP &mdash; Toll Free Helpline: 1800-AYU-RAKSHA
   </div>
 </footer>
 
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 {% block scripts %}{% endblock %}
 <script>
+// Dark Mode Toggle
+function toggleDarkMode() {
+  document.body.classList.toggle('dark-mode');
+  const isDark = document.body.classList.contains('dark-mode');
+  localStorage.setItem('ar_dark_mode', isDark ? 'enabled' : 'disabled');
+}
+
+// Load Dark Mode Preference
+if (localStorage.getItem('ar_dark_mode') === 'enabled') {
+  document.body.classList.add('dark-mode');
+}
+
+// Toggle Demo Panel
+function toggleDemoPanel() {
+  const panel = document.getElementById('demoPitchPanel');
+  panel.classList.toggle('open');
+  const isOpen = panel.classList.contains('open');
+  document.getElementById('demoToggleBtn').style.right = isOpen ? '340px' : '0';
+}
+
+// Demo Login Bypasses
+async function demoLogin(role) {
+  showToast(`Logging in as Demo ${role}...`, 'info');
+  if (role === 'patient') {
+    localStorage.setItem('ar_token', 'mock-pitch-token-patient');
+    localStorage.setItem('ar_role', 'patient');
+    localStorage.setItem('ar_user', JSON.stringify({ name: 'Rahul Sharma (Demo Patient)', phone: '9876543210', id: 1 }));
+    window.location = '/patient/dashboard';
+  } else if (role === 'hospital') {
+    localStorage.setItem('ar_token', 'mock-pitch-token-hospital');
+    localStorage.setItem('ar_role', 'hospital');
+    localStorage.setItem('ar_user', JSON.stringify({ name: 'District Hospital Barabanki (Demo)', phone: '9876500001', id: 2 }));
+    window.location = '/hospital/dashboard';
+  } else if (role === 'lab') {
+    localStorage.setItem('ar_token', 'mock-pitch-token-lab');
+    localStorage.setItem('ar_role', 'lab');
+    localStorage.setItem('ar_user', JSON.stringify({ name: 'SRL Diagnostics (Demo)', phone: '9000000000', id: 1 }));
+    window.location = '/lab/dashboard';
+  } else if (role === 'admin') {
+    localStorage.setItem('ar_token', 'mock-pitch-token-admin');
+    localStorage.setItem('ar_role', 'admin');
+    localStorage.setItem('ar_user', JSON.stringify({ name: 'System Admin (Demo)', email: 'admin@ayuraksha.com', id: 1 }));
+    window.location = '/admin/dashboard';
+  }
+}
+
+// Simulated Alerts
+function triggerSimulatedAlert(type) {
+  if (type === 'sepsis') {
+    showToast('🚨 ICU ALERT: Patient in Bed ICU-01 (Rahul S.) sepsis risk spiked to 84%!', 'error');
+    if (window.location.pathname.includes('icuguard')) {
+      try {
+        selectPatient(1);
+        showToast('🧠 ICU Guard AI: Sepsis alert warning message pushed to Dr. Rohit.', 'warning');
+      } catch(e){}
+    }
+  } else if (type === 'ambulance') {
+    showToast('🚑 AMBULANCE EN ROUTE: Driver Sunil Kumar (ALS) dispatched. ETA 4 min.', 'success');
+  } else if (type === 'bed') {
+    showToast('🏥 ICU BED CONFIRMED: Booking ID AR-BED-3091 confirmed at District Hospital Barabanki.', 'success');
+  }
+}
+
 async function updateLocation() {
     const locationElement = document.getElementById("locationDisplay");
 
@@ -125,7 +192,153 @@ async function updateLocation() {
 }
 
 updateLocation();
-</script>
-</body>
 
+// Toggle Chatbot
+function toggleAyuBuddy() {
+  const box = document.getElementById('ayubuddyBox');
+  box.classList.toggle('open');
+  if (box.classList.contains('open')) {
+    const chatMsgs = document.getElementById('ayubuddyMsgs');
+    chatMsgs.scrollTop = chatMsgs.scrollHeight;
+  }
+}
+
+// Handle chatbot user inputs or quick options
+function sendAyuBuddyOption(action, label) {
+  addAyuBuddyMessage(label, 'user');
+  
+  setTimeout(() => {
+    if (action === 'bedfinder') {
+      addAyuBuddyMessage("Navigating you to 🏥 **BedFinder**...", 'bot');
+      setTimeout(() => { window.location = '/bedfinder'; }, 1000);
+    } else if (action === 'ambulance') {
+      addAyuBuddyMessage("Navigating you to 🚑 **Ambulance Booking**...", 'bot');
+      setTimeout(() => { window.location = '/ambulance'; }, 1000);
+    } else if (action === 'labconnect') {
+      addAyuBuddyMessage("Navigating you to 🧪 **LabConnect**...", 'bot');
+      setTimeout(() => { window.location = '/labconnect'; }, 1000);
+    } else if (action === 'icuguard') {
+      addAyuBuddyMessage("Navigating you to 🧠 **ICU Guard** AI Sepsis alert dashboard...", 'bot');
+      setTimeout(() => { window.location = '/icuguard'; }, 1000);
+    } else if (action === 'ai_report') {
+      addAyuBuddyMessage("Navigating you to 📋 **AI Report Analysis**...", 'bot');
+      setTimeout(() => { window.location = '/api/lab/upload-report'; }, 1000);
+    } else if (action === 'emergency') {
+      addAyuBuddyMessage("🚨 **Emergency Mode Triggered!** Initializing fast ambulance booking now...", 'bot');
+      setTimeout(() => { window.location = '/ambulance'; }, 1200);
+    }
+  }, 500);
+}
+
+function addAyuBuddyMessage(text, sender) {
+  const container = document.getElementById('ayubuddyMsgs');
+  const msg = document.createElement('div');
+  msg.className = `ayubuddy-msg ${sender}`;
+  msg.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  container.appendChild(msg);
+  container.scrollTop = container.scrollHeight;
+}
+
+function sendAyuBuddyText() {
+  const input = document.getElementById('ayubuddyInput');
+  const text = input.value.trim();
+  if (!text) return;
+  
+  input.value = '';
+  addAyuBuddyMessage(text, 'user');
+  
+  setTimeout(() => {
+    const lText = text.toLowerCase();
+    if (lText.includes('bed') || lText.includes('hospital') || lText.includes('icu')) {
+      addAyuBuddyMessage("I can help you find a hospital bed nearby. Click below to view bed capacity grids.", 'bot');
+      addAyuBuddyOptions([{ action: 'bedfinder', label: '🏥 Find Hospital Beds' }]);
+    } else if (lText.includes('ambul') || lText.includes('emergency') || lText.includes('accident')) {
+      addAyuBuddyMessage("Emergency transport needed? Click below to dispatch an ambulance in under 60 seconds.", 'bot');
+      addAyuBuddyOptions([{ action: 'ambulance', label: '🚑 Book Ambulance Now' }]);
+    } else if (lText.includes('lab') || lText.includes('test') || lText.includes('blood')) {
+      addAyuBuddyMessage("I can help you book diagnostic tests at home. Select LabConnect below.", 'bot');
+      addAyuBuddyOptions([{ action: 'labconnect', label: '🧪 Book Lab Test' }]);
+    } else if (lText.includes('report') || lText.includes('ai') || lText.includes('ocr') || lText.includes('pdf')) {
+      addAyuBuddyMessage("AyuRaksha AI can translate your medical report parameters instantly. Go to upload page:", 'bot');
+      addAyuBuddyOptions([{ action: 'ai_report', label: '📋 Upload & Analyze Report' }]);
+    } else {
+      addAyuBuddyMessage("I am AyuBuddy. I can guide you through bed finders, ambulance dispatches, or lab connects. What would you like to open?", 'bot');
+      addAyuBuddyOptions([
+        { action: 'bedfinder', label: '🏥 BedFinder capacity grid' },
+        { action: 'ambulance', label: '🚑 Ambulance bookings' },
+        { action: 'labconnect', label: '🧪 LabConnect testing' }
+      ]);
+    }
+  }, 600);
+}
+
+function addAyuBuddyOptions(options) {
+  const container = document.getElementById('ayubuddyMsgs');
+  const div = document.createElement('div');
+  div.className = 'ayubuddy-options';
+  options.forEach(o => {
+    div.innerHTML += `<button class="ayubuddy-option-btn" onclick="sendAyuBuddyOption('${o.action}', '${o.label}')">${o.label}</button>`;
+  });
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+</script>
+
+<!-- Floating Demo Console -->
+<div class="demo-panel-toggle" id="demoToggleBtn" onclick="toggleDemoPanel()">
+  ⚙️ PITCH DEMO PANEL
+</div>
+<div class="demo-pitch-panel" id="demoPitchPanel">
+  <div class="demo-panel-header">
+    <h3>⚙️ Pitch Demo Console</h3>
+    <p>Simulate events and bypass dashboard authentication</p>
+  </div>
+  <div class="demo-panel-body">
+    <div>
+      <div class="demo-section-title">One-Click Auto Login</div>
+      <div class="demo-btn-grid">
+        <button class="demo-action-btn" onclick="demoLogin('patient')">👤 Login as Patient</button>
+        <button class="demo-action-btn" onclick="demoLogin('hospital')">🏥 Login as Hospital Admin</button>
+        <button class="demo-action-btn" onclick="demoLogin('lab')">🧪 Login as Lab Admin</button>
+        <button class="demo-action-btn" onclick="demoLogin('admin')">🔑 Login as Central Admin</button>
+      </div>
+    </div>
+    <div>
+      <div class="demo-section-title">Simulate Pitch Scenarios</div>
+      <div class="demo-btn-grid">
+        <button class="demo-action-btn" onclick="triggerSimulatedAlert('sepsis')">🧠 Sepsis Alert (ICU Guard)</button>
+        <button class="demo-action-btn" onclick="triggerSimulatedAlert('ambulance')">🚑 Dispatch ALS Ambulance</button>
+        <button class="demo-action-btn" onclick="triggerSimulatedAlert('bed')">🏥 ICU Bed Confirmed</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AyuBuddy Chatbot Widget -->
+<div class="ayubuddy-toggle" onclick="toggleAyuBuddy()" title="AyuBuddy AI Assistant">
+  💬
+</div>
+<div class="ayubuddy-box" id="ayubuddyBox">
+  <div class="ayubuddy-header">
+    <h4>🩺 AyuBuddy Assistant</h4>
+    <button class="ayubuddy-close" onclick="toggleAyuBuddy()">&times;</button>
+  </div>
+  <div class="ayubuddy-messages" id="ayubuddyMsgs">
+    <div class="ayubuddy-msg bot">
+      Hi! I am **AyuBuddy**, your personal AyuRaksha assistant. What medical service do you need help opening today?
+    </div>
+    <div class="ayubuddy-options">
+      <button class="ayubuddy-option-btn" onclick="sendAyuBuddyOption('bedfinder', '🏥 Find Hospital Bed')">🏥 Find Hospital Bed</button>
+      <button class="ayubuddy-option-btn" onclick="sendAyuBuddyOption('ambulance', '🚑 Book Ambulance')">🚑 Book Ambulance</button>
+      <button class="ayubuddy-option-btn" onclick="sendAyuBuddyOption('labconnect', '🧪 Book Diagnostic Test')">🧪 Book Diagnostic Test</button>
+      <button class="ayubuddy-option-btn" onclick="sendAyuBuddyOption('ai_report', '📋 AI Medical Report Explanation')">📋 AI Report Explanation</button>
+      <button class="ayubuddy-option-btn" onclick="sendAyuBuddyOption('emergency', '🚨 Emergency: Dispatch ALS')">🚨 Emergency Mode</button>
+    </div>
+  </div>
+  <div class="ayubuddy-input-area">
+    <input type="text" class="ayubuddy-input" id="ayubuddyInput" placeholder="Ask me something (e.g. Find ICU Bed)..." onkeypress="if(event.key==='Enter')sendAyuBuddyText()"/>
+    <button class="ayubuddy-send" onclick="sendAyuBuddyText()">➔</button>
+  </div>
+</div>
+</body>
 </html>

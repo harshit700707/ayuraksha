@@ -2,40 +2,65 @@
 {% block title %}Patient Login — AyuRaksha{% endblock %}
 
 {% block content %}
-<div style="min-height:70vh;display:flex;align-items:center;justify-content:center;padding:32px 16px;background:var(--surface2)">
+<div style="min-height: 75vh; display: flex; align-items: center; justify-content: center; padding: 48px 16px; background: var(--bg);">
   <div class="otp-box">
-    <div style="font-size:40px;margin-bottom:12px">👤</div>
+    <div style="font-size: 48px; margin-bottom: 16px;">👤</div>
     <h2>Patient Login</h2>
-    <p style="color:var(--text-muted);font-size:13px;margin-bottom:28px">Enter your mobile number to receive an OTP</p>
+    <p style="color: var(--text-muted); font-size: 14.5px; margin-bottom: 32px;">Enter your mobile number to receive a secure OTP via WhatsApp</p>
 
     <!-- Step 1: Phone -->
     <div id="phoneStep">
-      <div class="form-group" style="text-align:left">
+      <div class="form-group" style="text-align: left;">
         <label>Mobile Number</label>
-        <div style="display:flex;gap:8px">
-          <div style="padding:10px 12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-weight:700;white-space:nowrap">+91</div>
-          <input type="tel" id="phoneInput" placeholder="Enter 10-digit number" maxlength="10" style="flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:16px;font-family:var(--font);outline:none"/>
+        <div style="display: flex; gap: 8px;">
+          <div style="padding: 12px 16px; background: var(--surface2); border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-weight: 800; white-space: nowrap; display: flex; align-items: center; color: var(--text-muted);">+91</div>
+          <input type="tel" id="phoneInput" placeholder="Enter 10-digit number" maxlength="10" style="flex: 1; padding: 12px 16px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 16px; font-family: var(--font); outline: none; transition: all 0.2s ease;"/>
         </div>
       </div>
       <button class="btn btn-primary btn-block btn-lg" id="sendOtpBtn" onclick="sendOTP()">Send OTP</button>
-      <p style="margin-top:16px;font-size:12px;color:var(--text-muted)">OTP will be sent via WhatsApp</p>
+      <p style="margin-top: 16px; font-size: 12.5px; color: var(--text-muted);">A validation message will be dispatched immediately.</p>
+      <div style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px;">
+        <button class="btn btn-outline btn-block btn-sm" onclick="document.getElementById('phoneInput').value='9876543210'; sendOTP();">🔑 Quick Demo Login</button>
+      </div>
     </div>
 
     <!-- Step 2: OTP -->
-    <div id="otpStep" style="display:none">
-      <div class="alert alert-success" id="otpSentMsg"></div>
-      <div class="form-group" style="text-align:left">
-        <label>Enter OTP</label>
-        <input type="text" class="otp-input" id="otpInput" placeholder="——————" maxlength="6"
+    <div id="otpStep" style="display: none;">
+      <div class="alert alert-success" id="otpSentMsg" style="margin-bottom: 20px;"></div>
+      <div class="form-group" style="text-align: left;">
+        <label>Enter Verification Code</label>
+        <input type="text" class="otp-input" id="otpInput" placeholder="••••••" maxlength="6"
           oninput="this.value=this.value.replace(/\D/g,'')"
-          onkeypress="if(event.key==='Enter')verifyOTP()"/>
+          onkeypress="if(event.key==='Enter')verifyOTP()"
+          style="width: 100%; border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 12px; text-align: center; font-size: 24px; font-weight: 800; letter-spacing: 6px; outline: none; transition: border-color 0.2s;"/>
       </div>
       <button class="btn btn-primary btn-block btn-lg" id="verifyBtn" onclick="verifyOTP()">Verify & Login</button>
-      <button class="btn btn-outline btn-block btn-sm" style="margin-top:10px" onclick="goBackToPhone()">← Change Number</button>
-      <div id="resendTimer" style="margin-top:12px;font-size:12px;color:var(--text-muted)"></div>
+      <button class="btn btn-outline btn-block btn-sm" style="margin-top: 12px;" onclick="goBackToPhone()">← Change Number</button>
+      <div id="resendTimer" style="margin-top: 16px; font-size: 13px; color: var(--text-muted); font-weight: 600;"></div>
+      <div style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px;">
+        <button class="btn btn-outline btn-block btn-sm" onclick="document.getElementById('otpInput').value='123456'; verifyOTP();">🔑 Quick Verify Code</button>
+      </div>
     </div>
   </div>
 </div>
+<script>
+document.getElementById('phoneInput').addEventListener('focus', function() {
+  this.style.borderColor = 'var(--primary-light)';
+  this.style.boxShadow = '0 0 0 4px rgba(20, 184, 166, 0.12)';
+});
+document.getElementById('phoneInput').addEventListener('blur', function() {
+  this.style.borderColor = 'var(--border)';
+  this.style.boxShadow = 'none';
+});
+document.getElementById('otpInput').addEventListener('focus', function() {
+  this.style.borderColor = 'var(--primary)';
+  this.style.boxShadow = '0 0 0 4px rgba(15, 118, 110, 0.12)';
+});
+document.getElementById('otpInput').addEventListener('blur', function() {
+  this.style.borderColor = 'var(--border)';
+  this.style.boxShadow = 'none';
+});
+</script>
 
 <script>
 let currentPhone = '';

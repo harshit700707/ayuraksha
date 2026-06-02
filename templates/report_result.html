@@ -1,78 +1,25 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% extends "base.html" %}
+{% block title %}AI Report Analysis Result — AyuRaksha{% endblock %}
 
-    <title>AI Health Analysis</title>
-
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <style>
-
-        body{
-            background:linear-gradient(to right,#edf6ff,#dff6ff);
-            font-family:Arial;
-            min-height:100vh;
-        }
-
-        .result-card{
-            margin-top:50px;
-            border:none;
-            border-radius:20px;
-            box-shadow:0px 10px 30px rgba(0,0,0,0.1);
-            padding:30px;
-            background:white;
-        }
-
-        .title{
-            color:#0077b6;
-            font-weight:bold;
-        }
-
-        .result-box{
-            background:#f8fbff;
-            padding:25px;
-            border-radius:15px;
-            white-space:pre-wrap;
-            line-height:1.8;
-            margin-top:20px;
-            border-left:5px solid #0077b6;
-        }
-
-        .back-btn{
-            margin-top:25px;
-            background:#0077b6;
-            border:none;
-        }
-
-        .back-btn:hover{
-            background:#023e8a;
-        }
-
-    </style>
-
-</head>
-
-<body>
-
-<div class="container">
-
-    <div class="card result-card">
-
-        <h1 class="title">AI Health Analysis</h1>
-
-        <div class="result-box">
-            {{ result }}
-        </div>
-
-        <a href="/" class="btn btn-primary back-btn">
-            Upload Another Report
-        </a>
-
+{% block content %}
+<div style="max-width: 800px; margin: 48px auto; padding: 0 20px;">
+  <div class="card animate-slide">
+    <div style="text-align: center; margin-bottom: 32px;">
+      <h2 style="font-family: var(--font-display); font-size: 32px; color: var(--primary); font-weight: 800; letter-spacing: -0.5px;">📋 AI Report Analysis</h2>
+      <p style="color: var(--text-muted); margin-top: 6px;">Understandable translation of your uploaded medical records.</p>
     </div>
 
-</div>
+    <!-- AI Result Box -->
+    <div style="background: var(--surface2); padding: 32px; border-radius: var(--radius); border-left: 5px solid var(--primary); white-space: pre-wrap; line-height: 1.8; font-size: 15.5px; color: var(--text); box-shadow: var(--shadow-sm); margin-bottom: 32px;">{{ result }}</div>
 
-</body>
-</html>
+    <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+      <a href="/api/lab/upload-report" class="btn btn-primary" style="flex: 1; min-width: 220px;">
+        ⚡ Upload Another Report
+      </a>
+      <a href="/" class="btn btn-outline" style="flex: 1; min-width: 220px;">
+        🏠 Return to Homepage
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

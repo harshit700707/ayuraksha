@@ -2,36 +2,40 @@
 {% block title %}Lab Dashboard — AyuRaksha{% endblock %}
 
 {% block content %}
-<div id="loginGate" style="display:none;max-width:400px;margin:60px auto;padding:20px">
+<div id="loginGate" style="display:none; max-width:400px; margin:60px auto; padding:20px">
   <div class="otp-box">
     <h2>Lab Login</h2>
-    <div class="form-group" style="text-align:left;margin-top:20px">
-      <label>Phone</label>
+    <div class="form-group" style="text-align:left; margin-top:20px">
+      <label>Phone Number</label>
       <input type="tel" id="loginPhone" placeholder="10-digit number" maxlength="10"/>
     </div>
     <div class="form-group" style="text-align:left">
       <label>Password</label>
-      <input type="password" id="loginPassword"/>
+      <input type="password" id="loginPassword" placeholder="Enter password"/>
     </div>
     <button class="btn btn-primary btn-block" onclick="labLogin()">Login</button>
-    <p style="margin-top:12px;font-size:13px;color:var(--text-muted)">Not registered? <a href="/lab/register">Register →</a></p>
+    <p style="margin-top:12px; font-size:13.5px; color:var(--text-muted)">Not registered? <a href="/lab/register">Register Lab →</a></p>
+    <div style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px;">
+      <button class="btn btn-outline btn-block btn-sm" onclick="document.getElementById('loginPhone').value='9000000000'; document.getElementById('loginPassword').value='lab@123'; labLogin();">🔑 Quick Demo Login</button>
+    </div>
   </div>
 </div>
 
 <div id="dashContent" style="display:none">
-  <div style="background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:white;padding:20px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+  <!-- Top Bar -->
+  <div style="background: linear-gradient(135deg, var(--primary-dark), #0d9488); color: white; padding: 24px 32px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; box-shadow: var(--shadow);">
     <div>
-      <h2 style="font-size:20px;font-weight:800" id="labName">Lab Dashboard</h2>
-      <p style="font-size:12px;opacity:0.75">Manage bookings and tests</p>
+      <h2 style="font-family: var(--font-display); font-size: 24px; font-weight: 800; letter-spacing: -0.5px;" id="labName">Lab Dashboard</h2>
+      <p style="font-size: 13.5px; opacity: 0.85; margin-top: 2px;">Manage laboratory test directory and client bookings</p>
     </div>
-    <div style="display:flex;gap:10px">
-      <button onclick="openModal('addTestModal')" class="btn btn-sm" style="background:rgba(255,255,255,0.2);color:white;border:none">+ Add Test</button>
-      <button onclick="Auth.logout()" class="btn btn-sm btn-outline" style="border-color:rgba(255,255,255,0.4);color:white">Logout</button>
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <button onclick="openModal('addTestModal')" class="btn btn-sm" style="background: rgba(255, 255, 255, 0.15); color: white; border: none; font-weight: 700;">+ Add Test</button>
+      <button onclick="Auth.logout()" class="btn btn-sm btn-outline" style="border-color: rgba(255, 255, 255, 0.4); color: white; font-weight: 700;">Logout</button>
     </div>
   </div>
 
-  <div style="max-width:1100px;margin:0 auto;padding:24px 20px">
-    <div class="card" style="margin-bottom:24px">
+  <div style="max-width:1100px; margin:0 auto; padding:40px 24px">
+    <div class="card" style="margin-bottom:32px">
       <div class="card-title">Recent Bookings</div>
       <div id="bookingsList"><div class="loading-overlay"><div class="spinner"></div></div></div>
     </div>
@@ -57,9 +61,14 @@
       <div class="form-group">
         <label>Category</label>
         <select id="testCategory">
-          <option>Haematology</option><option>Diabetes</option><option>Thyroid</option>
-          <option>Cardiac</option><option>Liver</option><option>Kidney</option>
-          <option>Infectious</option><option>General</option>
+          <option>Haematology</option>
+          <option>Diabetes</option>
+          <option>Thyroid</option>
+          <option>Cardiac</option>
+          <option>Liver</option>
+          <option>Kidney</option>
+          <option>Infectious</option>
+          <option>General</option>
         </select>
       </div>
       <div class="form-group">
