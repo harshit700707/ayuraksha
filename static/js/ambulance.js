@@ -1,10 +1,26 @@
 // Ambulance JS
 let map, userMarker, ambulanceMarkers = [], trackInterval = null;
 let selectedAmbType = 'Basic', selectedAmb = null, pickupLatLng = null;
+let trackingAmbMarker = null, trackingUserMarker = null;
 
 const AMB_ICONS = { Basic: '🚑', ALS: '🏥', Neonatal: '👶' };
 
 document.addEventListener('DOMContentLoaded', async () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const bookingId = urlParams.get('booking_id');
+
+  if (bookingId) {
+    // Initialize map for tracking
+    map = L.map('ambulance-map').setView([26.9270, 81.1989], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    await loadBookingTracking(bookingId);
+    return;
+  }
+
+  // Normal flow
   map = L.map('ambulance-map').setView([window.userLocation.lat, window.userLocation.lng], 14);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
@@ -146,40 +162,102 @@ async function submitAmbBooking() {
 
   if (res.success) {
     closeModal('bookModal');
-    showTrackingPanel(res.data);
+    // Save booking_id to url and reload in tracking mode
+    window.location.search = `?booking_id=${res.data.booking_id}`;
   } else {
     showToast(res.message || 'Booking failed', 'error');
   }
 }
 
+async function loadBookingTracking(bookingId) {
+  const res = await apiCall('GET', `/api/ambulance/${bookingId}/track`);
+  if (!res.success) {
+    showToast('Failed to load tracking details.', 'error');
+    setTimeout(() => { window.location.href = '/ambulance'; }, 3000);
+    return;
+  }
+
+  const data = res.data;
+
+  // Set up patient location marker
+  const uIcon = L.divIcon({ className: '', html: '<div style="background:#0a6e5c;width:18px;height:18px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4)"></div>' });
+  trackingUserMarker = L.marker([data.pickup_lat, data.pickup_lng], { icon: uIcon })
+    .addTo(map)
+    .bindPopup('📍 Your location')
+    .openPopup();
+
+  // Set up ambulance marker
+  const ambIcon = L.divIcon({
+    className: '',
+    html: `<div style="background:#ef4444;color:white;border-radius:8px;padding:4px 8px;font-size:12px;font-weight:800;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.3)">🚑 Driver En Route</div>`,
+    iconAnchor: [45, 15]
+  });
+  trackingAmbMarker = L.marker([data.current_lat, data.current_lng], { icon: ambIcon }).addTo(map);
+
+  // Fit bounds to show both markers
+  const group = new L.featureGroup([trackingUserMarker, trackingAmbMarker]);
+  map.fitBounds(group.getBounds().pad(0.25));
+
+  showTrackingPanel(data);
+  startLiveTracking(bookingId);
+}
+
+function startLiveTracking(bookingId) {
+  if (trackInterval) clearInterval(trackInterval);
+
+  trackInterval = setInterval(async () => {
+    const res = await apiCall('GET', `/api/ambulance/${bookingId}/track`);
+    if (res.success) {
+      const data = res.data;
+
+      // Move ambulance marker
+      if (trackingAmbMarker) {
+        trackingAmbMarker.setLatLng([data.current_lat, data.current_lng]);
+      }
+
+      // Update ETA
+      const etaEl = document.getElementById('liveEta');
+      if (etaEl) {
+        etaEl.textContent = `${data.eta_min} min`;
+      }
+
+      if (data.status === 'Completed' || data.eta_min <= 0) {
+        clearInterval(trackInterval);
+        if (etaEl) etaEl.textContent = 'Arrived!';
+        showToast('Ambulance has arrived!', 'success');
+      }
+    }
+  }, 5000);
+}
+
 function showTrackingPanel(booking) {
+  // Hide standard booking controls
+  const controls = document.getElementById('bookingControls');
+  if (controls) controls.style.display = 'none';
+
   document.getElementById('bottomSheet').innerHTML = `
     <div class="driver-card">
-      <div style="font-size:12px;font-weight:700;opacity:0.7;margin-bottom:8px">AMBULANCE DISPATCHED</div>
-      <div class="driver-header">
-        <div class="driver-avatar">🚑</div>
+      <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px;display:flex;align-items:center;gap:6px">
+        <span class="pulse-dot" style="background:var(--accent);width:8px;height:8px"></span> AMBULANCE DISPATCHED (LIVE)
+      </div>
+      <div class="driver-header" style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <div class="driver-avatar" style="font-size:28px">🚑</div>
         <div>
-          <div class="driver-name">${booking.driver_name}</div>
-          <div class="driver-meta">${booking.vehicle_no} &bull; ${booking.amb_type}</div>
+          <div class="driver-name" style="font-weight:800;font-size:15px">${booking.driver_name || 'Driver'}</div>
+          <div class="driver-meta" style="font-size:12px;color:var(--text-muted)">${booking.vehicle_no || ''} &bull; ${booking.amb_type || 'Basic'}</div>
         </div>
-        <a href="tel:${booking.driver_phone}" class="btn btn-sm btn-success" style="margin-left:auto">📞 Call</a>
+        <a href="tel:${booking.driver_phone}" class="btn btn-sm btn-success" style="margin-left:auto;border-radius:20px;padding:6px 14px">📞 Call Driver</a>
       </div>
-      <div class="eta-display" id="liveEta">${booking.eta_min} min</div>
-      <div class="eta-label">Estimated Time of Arrival</div>
-      <div style="margin-top:12px;display:flex;justify-content:space-between;font-size:13px;opacity:0.85">
-        <span>Booking: <strong>${booking.booking_id}</strong></span>
-        <span>Fare: <strong>₹${booking.total_fare}</strong></span>
+      <div class="eta-container" style="background:var(--surface2);border-radius:var(--radius-sm);padding:14px;text-align:center;margin-bottom:12px">
+        <div class="eta-display" id="liveEta" style="font-size:32px;font-weight:900;color:var(--primary)">${booking.eta_min} min</div>
+        <div class="eta-label" style="font-size:12px;color:var(--text-muted);font-weight:700">Estimated Time of Arrival</div>
       </div>
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--text-muted);padding-top:8px;border-top:1px solid var(--border)">
+        <span>Booking ID: <strong>${booking.booking_id}</strong></span>
+        <span>Est. Fare: <strong>₹${booking.total_fare || '300'}</strong></span>
+      </div>
+      <a href="tel:112" class="btn btn-outline btn-sm btn-block" style="margin-top:12px;border-color:var(--accent);color:var(--accent);border-radius:8px">🚨 Call 112 for Police/Fire</a>
     </div>`;
-
-  // Live tracking simulation
-  let eta = booking.eta_min;
-  trackInterval = setInterval(() => {
-    if (eta > 0) eta--;
-    const etaEl = document.getElementById('liveEta');
-    if (etaEl) etaEl.textContent = `${eta} min`;
-    if (eta === 0) { clearInterval(trackInterval); if (etaEl) etaEl.textContent = 'Arrived!'; }
-  }, 30000);
 }
 
 // Fare estimator
@@ -195,3 +273,4 @@ async function estimateFare() {
     showToast(`Estimated fare: ₹${res.data.total_fare} (${res.data.distance_km} km)`, 'info');
   }
 }
+

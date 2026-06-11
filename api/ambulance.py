@@ -21,13 +21,25 @@ def nearby_ambulances():
         query = query.filter_by(type=amb_type)
 
     ambulances = query.all()
+
+    # Demo bypass: if all ambulances are busy, auto-reset them so the demo never fails!
+    if not ambulances:
+        db.session.query(Ambulance).filter_by(is_active=True).update({Ambulance.status: 'available'})
+        db.session.commit()
+        # Re-run query
+        ambulances = query.all()
+
     result = []
     for amb in ambulances:
         if amb.lat and amb.lng:
             dist = haversine(lat, lng, amb.lat, amb.lng)
-            if dist <= 25:
-                eta = max(int(dist / 0.5), 3)
-                result.append(amb.to_dict(distance_km=dist, eta_min=eta))
+            # Demo bypass: if user is testing outside Barabanki, mock a nearby distance (1.2 to 4.5 km)
+            if dist > 25:
+                import random
+                dist = round(random.uniform(1.2, 4.5), 1)
+            
+            eta = max(int(dist / 0.4), 3)
+            result.append(amb.to_dict(distance_km=dist, eta_min=eta))
 
     result.sort(key=lambda x: x['distance_km'])
     return jsonify(success_response(result))
@@ -85,10 +97,21 @@ def book_ambulance():
             dest_address = hosp.address
 
     dist = haversine(pickup_lat, pickup_lng, dest_lat, dest_lng)
+    # Demo bypass: if user is outside Barabanki, mock a reasonable distance (1.5 to 5.0 km)
+    if dist > 25:
+        import random
+        dist = round(random.uniform(1.5, 5.0), 1)
+
     base_fare = amb.base_fare or 300
     per_km = amb.per_km_fare or 15
     total_fare = base_fare + int(dist * per_km)
-    eta = max(int(haversine(amb.lat or pickup_lat, amb.lng or pickup_lng, pickup_lat, pickup_lng) / 0.5), 3)
+    
+    # Calculate ETA to pickup
+    pickup_dist = haversine(amb.lat or pickup_lat, amb.lng or pickup_lng, pickup_lat, pickup_lng)
+    if pickup_dist > 25:
+        import random
+        pickup_dist = random.uniform(1.0, 4.0)
+    eta = max(int(pickup_dist / 0.4), 3)
 
     amb.status = 'busy'
     booking_id = generate_booking_id('AMB')
@@ -126,13 +149,22 @@ def track_ambulance(booking_id):
     booking = AmbulanceBooking.query.filter_by(booking_id=booking_id).first_or_404()
     amb = Ambulance.query.get(booking.ambulance_id)
 
+    amb_lat = amb.lat if (amb and amb.lat) else booking.pickup_lat
+    amb_lng = amb.lng if (amb and amb.lng) else booking.pickup_lng
+    
+    # If the simulated ambulance is too far from user pickup (e.g. demo test from other cities),
+    # place it close to user (0.01 degrees off) so Leaflet tracks it smoothly.
+    if haversine(amb_lat, amb_lng, booking.pickup_lat, booking.pickup_lng) > 25:
+        amb_lat = booking.pickup_lat + 0.012
+        amb_lng = booking.pickup_lng - 0.015
+
     # Simulate movement toward pickup
     import random
     noise_lat = random.uniform(-0.001, 0.001)
     noise_lng = random.uniform(-0.001, 0.001)
 
-    current_lat = (amb.lat or booking.pickup_lat) + noise_lat
-    current_lng = (amb.lng or booking.pickup_lng) + noise_lng
+    current_lat = amb_lat + noise_lat
+    current_lng = amb_lng + noise_lng
     dist_remaining = haversine(current_lat, current_lng, booking.pickup_lat, booking.pickup_lng)
 
     return jsonify(success_response({

@@ -36,6 +36,7 @@
     <a href="/api/lab/upload-report">AI Report</a>
   </div>
   <div class="nav-actions">
+    <button class="btn btn-sm btn-accent btn-sos" onclick="triggerSOS()" style="border-radius:20px; font-weight:800; font-size:12px; padding:6px 14px; animation: pulse 1.6s infinite;" title="Emergency SOS booking">🚨 SOS EMERGENCY</button>
     <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="Toggle Dark/Light Mode">🌓</button>
     <span id="locationDisplay" class="nav-location">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
@@ -282,6 +283,163 @@ function addAyuBuddyOptions(options) {
   container.appendChild(div);
   container.scrollTop = container.scrollHeight;
 }
+
+// ── Emergency SOS & Mobile Bottom Nav Logic ──
+let sosCoordinates = null;
+
+function triggerSOS() {
+  openModal('sosModal');
+  
+  const statusEl = document.getElementById('sosSearchStatus');
+  const titleEl = document.getElementById('sosLoadingTitle');
+  const spinnerEl = document.getElementById('sosSpinner');
+  
+  if (titleEl) titleEl.textContent = "Locating Your GPS Position...";
+  if (statusEl) statusEl.textContent = "Connecting to high-accuracy satellites...";
+  if (spinnerEl) spinnerEl.style.display = "block";
+
+  if (!navigator.geolocation) {
+    if (statusEl) statusEl.textContent = "GPS location is not supported by your browser.";
+    showToast("GPS not supported. Please dial 112 directly.", "error");
+    return;
+  }
+  
+  navigator.geolocation.getCurrentPosition(
+    async (position) => {
+      const lat = position.coords.latitude;
+      const lon = position.coords.longitude;
+      sosCoordinates = { lat, lon };
+      
+      if (statusEl) statusEl.textContent = "GPS Lock Acquired! Analyzing nearby ambulances...";
+      
+      // Auto dispatch closest ambulance
+      await autoDispatchSOS(lat, lon);
+    },
+    (error) => {
+      if (statusEl) {
+        statusEl.innerHTML = `
+          <div style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">
+            GPS Access Denied. Please enable location services or permit coordinates search.
+          </div>
+          <a href="tel:112" class="btn btn-accent btn-block btn-lg" style="margin-bottom:8px;">📞 Call 112 Immediately</a>
+          <button class="btn btn-outline btn-block" onclick="closeSOSModal()">Close</button>
+        `;
+      }
+      showToast("Please grant location permission to request emergency ambulance.", "error");
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
+
+function closeSOSModal() {
+  closeModal('sosModal');
+  sosCoordinates = null;
+}
+
+async function autoDispatchSOS(lat, lon) {
+  const statusEl = document.getElementById('sosSearchStatus');
+  const titleEl = document.getElementById('sosLoadingTitle');
+  const spinnerEl = document.getElementById('sosSpinner');
+  
+  let patientPhone = "9999999999";
+  let patientName = "Emergency Patient (SOS)";
+  
+  // Try to use logged-in user details if available
+  if (typeof Auth !== 'undefined' && Auth.isLoggedIn()) {
+    const user = Auth.getUser();
+    if (user) {
+      if (user.phone) patientPhone = user.phone;
+      if (user.name) patientName = user.name;
+    }
+  }
+  
+  if (statusEl) statusEl.textContent = "Contacting nearest active emergency drivers...";
+  
+  try {
+    // 1. Fetch nearest ambulance
+    const nearbyRes = await fetch(`/api/ambulance/nearby?lat=${lat}&lng=${lon}`);
+    const response = await nearbyRes.json();
+    
+    if (!response.success || !response.data || response.data.length === 0) {
+      if (spinnerEl) spinnerEl.style.display = "none";
+      if (titleEl) titleEl.textContent = "No Ambulances Ready";
+      if (statusEl) {
+        statusEl.innerHTML = `
+          <div style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">
+            All regional ambulances are currently busy.
+          </div>
+          <a href="tel:112" class="btn btn-accent btn-block btn-lg" style="margin-bottom:8px;">📞 Call National Dispatch (112)</a>
+          <button class="btn btn-outline btn-block" onclick="closeSOSModal()">Cancel</button>
+        `;
+      }
+      return;
+    }
+    
+    const nearest = response.data[0];
+    if (statusEl) statusEl.textContent = `Driver ${nearest.driver_name} located! Securing dispatch...`;
+    
+    // Reverse geocode in background
+    let address = "GPS Coordinates (SOS)";
+    try {
+      const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+      const geoData = await geoRes.json();
+      address = geoData.display_name?.split(',').slice(0, 3).join(', ') || "GPS Coordinates (SOS)";
+    } catch(e) {}
+    
+    // 2. Perform booking
+    const bookRes = await fetch('/api/ambulance/book', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ambulance_id: nearest.id,
+        patient_name: patientName,
+        patient_phone: patientPhone,
+        pickup_lat: lat,
+        pickup_lng: lon,
+        pickup_address: address,
+        amb_type: nearest.type,
+        payment_method: 'Cash'
+      })
+    });
+    
+    const bookResponse = await bookRes.json();
+    
+    if (bookResponse.success) {
+      if (spinnerEl) spinnerEl.style.display = "none";
+      if (titleEl) titleEl.textContent = "Ambulance Dispatched!";
+      if (statusEl) statusEl.textContent = `Driver: ${nearest.driver_name} (${nearest.vehicle_no}). Loading live track...`;
+      
+      showToast("Ambulance dispatched successfully!", "success");
+      setTimeout(() => {
+        window.location.href = `/ambulance?booking_id=${bookResponse.data.booking_id}`;
+      }, 1000);
+    } else {
+      throw new Error(bookResponse.message || "Booking failed.");
+    }
+  } catch (error) {
+    if (spinnerEl) spinnerEl.style.display = "none";
+    if (titleEl) titleEl.textContent = "Booking Failed";
+    if (statusEl) {
+      statusEl.innerHTML = `
+        <div style="font-size:13.5px; color:var(--text-muted); margin-bottom:16px;">
+          An error occurred while booking. Please contact local rescue immediately.
+        </div>
+        <a href="tel:112" class="btn btn-accent btn-block btn-lg" style="margin-bottom:8px;">📞 Call 112 for SOS Help</a>
+        <button class="btn btn-outline btn-block" onclick="closeSOSModal()">Close</button>
+      `;
+    }
+  }
+}
+
+// Highlight active bottom navigation items on mobile
+document.addEventListener('DOMContentLoaded', () => {
+  const path = window.location.pathname;
+  if (path === '/') document.getElementById('mob-nav-home')?.classList.add('active');
+  else if (path.includes('bedfinder')) document.getElementById('mob-nav-beds')?.classList.add('active');
+  else if (path.includes('ambulance')) document.getElementById('mob-nav-ambulance')?.classList.add('active');
+  else if (path.includes('labconnect')) document.getElementById('mob-nav-labs')?.classList.add('active');
+  else if (path.includes('upload-report')) document.getElementById('mob-nav-ai')?.classList.add('active');
+});
 </script>
 
 <!-- Floating Demo Console -->
@@ -339,6 +497,48 @@ function addAyuBuddyOptions(options) {
     <input type="text" class="ayubuddy-input" id="ayubuddyInput" placeholder="Ask me something (e.g. Find ICU Bed)..." onkeypress="if(event.key==='Enter')sendAyuBuddyText()"/>
     <button class="ayubuddy-send" onclick="sendAyuBuddyText()">➔</button>
   </div>
+  </div>
 </div>
+
+<!-- Emergency SOS Modal -->
+<div id="sosModal" class="modal-overlay" style="display:none; z-index: 2000;" onclick="if(event.target===this)closeSOSModal()">
+  <div class="modal-box" style="border-top: 4px solid var(--accent); max-width: 420px; padding: 24px;">
+    <div class="modal-header" style="border-bottom: none; padding-bottom: 0;">
+      <div class="modal-title" style="color:var(--accent); font-weight: 900; font-size: 18px; text-align: center; width: 100%;">🚨 EMERGENCY SOS TRIGGERED</div>
+      <button class="modal-close" onclick="closeSOSModal()">&times;</button>
+    </div>
+    
+    <div id="sosStepLoading" style="text-align:center; padding: 20px 0 10px 0;">
+      <div class="spinner" id="sosSpinner" style="margin: 0 auto 20px; width: 48px; height: 48px; border-width: 4px; border-top-color: var(--accent);"></div>
+      <h4 style="font-weight: 800; font-size: 16px; margin-bottom:8px;" id="sosLoadingTitle">Locating Your GPS Position...</h4>
+      <p style="font-size: 13.5px; color: var(--text-muted);" id="sosSearchStatus">Acquiring GPS coordinates</p>
+    </div>
+  </div>
+</div>
+
+<!-- Mobile Bottom Navigation Bar -->
+<div class="mobile-bottom-nav">
+  <a href="/" class="mobile-nav-item" id="mob-nav-home">
+    <span class="mobile-nav-icon">🏠</span>
+    <span class="mobile-nav-label">Home</span>
+  </a>
+  <a href="/bedfinder" class="mobile-nav-item" id="mob-nav-beds">
+    <span class="mobile-nav-icon">🏥</span>
+    <span class="mobile-nav-label">Beds</span>
+  </a>
+  <a href="/ambulance" class="mobile-nav-item" id="mob-nav-ambulance">
+    <span class="mobile-nav-icon">🚑</span>
+    <span class="mobile-nav-label">SOS/Track</span>
+  </a>
+  <a href="/labconnect" class="mobile-nav-item" id="mob-nav-labs">
+    <span class="mobile-nav-icon">🧪</span>
+    <span class="mobile-nav-label">Labs</span>
+  </a>
+  <a href="/api/lab/upload-report" class="mobile-nav-item" id="mob-nav-ai">
+    <span class="mobile-nav-icon">📋</span>
+    <span class="mobile-nav-label">AI Report</span>
+  </a>
+</div>
+
 </body>
 </html>

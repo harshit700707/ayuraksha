@@ -8,72 +8,73 @@
 {% endblock %}
 
 {% block content %}
-<div style="display:flex;height:calc(100vh - 90px);overflow:hidden">
+<div class="ambulance-page-layout">
   <!-- Left Panel -->
-  <div style="width:360px;flex-shrink:0;display:flex;flex-direction:column;background:var(--surface);border-right:1.5px solid var(--border);overflow-y:auto">
+  <div class="ambulance-sidebar">
     <!-- Header -->
     <div style="padding:20px;border-bottom:1.5px solid var(--border);background:linear-gradient(135deg,#7f1d1d,#ef4444);color:white">
       <h2 style="font-family:var(--font-display);font-size:20px;margin-bottom:4px">🚑 Book Ambulance</h2>
-      <p style="font-size:12px;opacity:0.85">Drag the green pin to set your pickup location</p>
+      <p style="font-size:12px;opacity:0.85">Set your location to find nearby drivers</p>
     </div>
 
-    <!-- Pickup Address -->
-    <div style="padding:14px 20px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:13px">
-      <div style="font-weight:700;font-size:11px;color:var(--text-muted);margin-bottom:4px">YOUR PICKUP LOCATION</div>
-      <div id="pickupAddress" style="font-weight:600">📍 {{ pickup_address }}</div>
-    </div>
+    <!-- Booking Controls to be hidden in tracking mode -->
+    <div id="bookingControls">
+      <!-- Pickup Address -->
+      <div style="padding:14px 20px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:13px">
+        <div style="font-weight:700;font-size:11px;color:var(--text-muted);margin-bottom:4px">YOUR PICKUP LOCATION</div>
+        <div id="pickupAddress" style="font-weight:600">📍 Detecting...</div>
+      </div>
 
-    <!-- Ambulance Type -->
-    <div style="padding:16px 20px;border-bottom:1.5px solid var(--border)">
-      <div style="font-weight:800;font-size:13px;margin-bottom:12px">Select Ambulance Type</div>
-      <div class="amb-type-grid">
-        <div class="amb-type-btn selected" data-type="Basic" onclick="selectAmbType('Basic')">
-          <span class="amb-type-icon">🚑</span>
-          <div class="amb-type-name">Basic</div>
-          <div class="amb-type-price">from ₹300</div>
-        </div>
-        <div class="amb-type-btn" data-type="ALS" onclick="selectAmbType('ALS')">
-          <span class="amb-type-icon">🏥</span>
-          <div class="amb-type-name">ALS</div>
-          <div class="amb-type-price">from ₹500</div>
-        </div>
-        <div class="amb-type-btn" data-type="Neonatal" onclick="selectAmbType('Neonatal')">
-          <span class="amb-type-icon">👶</span>
-          <div class="amb-type-name">Neonatal</div>
-          <div class="amb-type-price">from ₹800</div>
+      <!-- Ambulance Type -->
+      <div style="padding:16px 20px;border-bottom:1.5px solid var(--border)">
+        <div style="font-weight:800;font-size:13px;margin-bottom:12px">Select Ambulance Type</div>
+        <div class="amb-type-grid">
+          <div class="amb-type-btn selected" data-type="Basic" onclick="selectAmbType('Basic')">
+            <span class="amb-type-icon">🚑</span>
+            <div class="amb-type-name">Basic</div>
+            <div class="amb-type-price">from ₹300</div>
+          </div>
+          <div class="amb-type-btn" data-type="ALS" onclick="selectAmbType('ALS')">
+            <span class="amb-type-icon">🏥</span>
+            <div class="amb-type-name">ALS</div>
+            <div class="amb-type-price">from ₹500</div>
+          </div>
+          <div class="amb-type-btn" data-type="Neonatal" onclick="selectAmbType('Neonatal')">
+            <span class="amb-type-icon">👶</span>
+            <div class="amb-type-name">Neonatal</div>
+            <div class="amb-type-price">from ₹800</div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Nearby Ambulances List -->
-    <div style="flex:1;overflow-y:auto">
+      <!-- Nearby Ambulances List -->
       <div style="padding:14px 20px;border-bottom:1px solid var(--border);font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:space-between">
         <span>Available Ambulances</span>
         <button onclick="loadNearbyAmbulances()" style="background:none;border:none;color:var(--primary);font-weight:700;cursor:pointer;font-size:12px">🔄 Refresh</button>
       </div>
-      <div id="ambList"><div class="loading-overlay"><div class="spinner"></div></div></div>
+      <div id="ambList" style="max-height: 250px; overflow-y: auto;"><div class="loading-overlay"><div class="spinner"></div></div></div>
+
+      <!-- Book Button -->
+      <div style="padding:16px;border-top:1.5px solid var(--border)">
+        <button class="btn btn-accent btn-block btn-lg" id="bookBtn" onclick="openBookModal()" disabled>
+          🚨 Book Selected Ambulance
+        </button>
+        <button class="btn btn-outline btn-sm btn-block" style="margin-top:8px" onclick="estimateFare()">
+          💰 Estimate Fare
+        </button>
+      </div>
     </div>
 
-    <!-- Book Button -->
-    <div style="padding:16px;border-top:1.5px solid var(--border)">
-      <button class="btn btn-accent btn-block btn-lg" id="bookBtn" onclick="openBookModal()" disabled>
-        🚨 Book Selected Ambulance
-      </button>
-      <button class="btn btn-outline btn-sm btn-block" style="margin-top:8px" onclick="estimateFare()">
-        💰 Estimate Fare
-      </button>
-    </div>
-
-    <!-- Bottom Sheet (post-booking) -->
-    <div id="bottomSheet"></div>
+    <!-- Bottom Sheet (post-booking details card) -->
+    <div id="bottomSheet" style="padding: 16px;"></div>
   </div>
 
   <!-- Map -->
-  <div style="flex:1;position:relative">
+  <div class="ambulance-map-container">
     <div id="ambulance-map" style="height:100%;width:100%"></div>
     <!-- Emergency strip on map -->
-    <div style="position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:800;background:var(--accent);color:white;padding:8px 20px;border-radius:99px;font-weight:700;font-size:13px;box-shadow:0 2px 12px rgba(0,0,0,0.3)">
-      🚨 For life-threatening emergency, call 112 immediately
+    <div style="position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:800;background:var(--accent);color:white;padding:8px 20px;border-radius:99px;font-weight:700;font-size:13px;box-shadow:0 2px 12px rgba(0,0,0,0.3);white-space:nowrap;">
+      🚨 Call 112 in life-threatening emergency
     </div>
   </div>
 </div>
