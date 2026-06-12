@@ -150,6 +150,7 @@ function openBookingModal() {
   const collection = nearbyLabs.find(l => l.id === labId)?.collection_charge || 50;
   const sub = cart.reduce((a,t) => a + t.price, 0);
   document.getElementById('cartSummaryTotal').textContent = `₹${sub + collection}`;
+  generateSlots();
   openModal('bookingModal');
 }
 
@@ -214,6 +215,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     dateEl.value = tomorrow.toISOString().split('T')[0];
+    generateSlots();
   }
 
   document.getElementById('searchTests')?.addEventListener('input', loadTests);
